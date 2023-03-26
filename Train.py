@@ -7,8 +7,10 @@ import sys
 sys.path.append("..")
 
 from network import DL_method_NN
+from config_parameter import iters
 sys.path.append("..")
 import numpy as np
+
 Nt=8
 Nr=8
 Antenna_Gain = math.sqrt(Nt*Nr)
@@ -67,8 +69,8 @@ if __name__ == '__main__':
         for gpu in gpus:
             tf.config.experimental.set_memory_growth(gpu, True)
 
-    iters = 10
-    num_vehicles = 5
+
+
     RSU_location_x = 50
     RSU_location_y = 20
     for i in range(0,iters):

@@ -1,4 +1,4 @@
-
+"abandoned oop"
 import numpy as np
 from math import pi,sqrt,cos
 class Vehicle:
