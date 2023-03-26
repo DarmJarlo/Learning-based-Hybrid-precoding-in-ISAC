@@ -4,9 +4,11 @@ from keras.layers import Conv2D
 from keras.layers import MaxPooling2D
 from keras.layers import Flatten
 import tensorflow as tf
+
+import config_parameter
 from config_parameter import rf_size, antenna_size
 class DL_method_NN(keras.Model)
-    def __init__(self, rf_size,antenna_size):
+    def __init__(self):
         super().__init__()
         act_func = "relu"
         init = keras.initializers.GlorotNormal() #Xavier initializer
@@ -20,13 +22,13 @@ class DL_method_NN(keras.Model)
         self.bn3 = keras.layers.BatchNormalization()
         self.maxpool3 = MaxPooling2D()
         self.flatten = Flatten()
-        self.dense_1 = Dense(500, activation=act_func, kernel_initializer=init)
-        self.dense_2 = Dense(500, activation=act_func, kernel_initializer=init)
-        self.dense_3 = Dense(200, activation=act_func, kernel_initializer=init)
-        self.dense_4 = Dense(200, activation=act_func, kernel_initializer=init)
+        self.dense_1 = Dense(1200, activation=act_func, kernel_initializer=init)
+        self.dense_2 = Dense(1200, activation=act_func, kernel_initializer=init)
+        self.dense_3 = Dense(600, activation=act_func, kernel_initializer=init)
+        self.dense_4 = Dense(600, activation=act_func, kernel_initializer=init)
         #self.dense_5 = Dense(20, activation=act_func, kernel_initializer=init)
         #self.dense_6 = Dense(20, activation=act_func, kernel_initializer=init)
-        parameter_size = rf_size + 2*antenna_size
+        parameter_size = config_parameter.rf_size*config_parameter.antenna_size + 2*config_parameter.rf_size*config_parameter.num_vehicle
         self.out = Dense(parameter_size, activation='softmax', kernel_initializer=init)
 
 

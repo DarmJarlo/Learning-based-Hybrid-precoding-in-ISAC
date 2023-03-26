@@ -18,34 +18,6 @@ Nt=8
 Nr=8
 Antenna_Gain = math.sqrt(Nt*Nr)
 
-def link_sinr(self, alpha):
-    pathloss = alpha * ((distance / d0) ** coefficient_loss)
-    gain = sqrt(Nt)
-    w_k = precoding_matrix[:, index]
-    for n1 in range(0, Nt):
-        transmit_steering = transmit_steering.append(np.exp(-j * pi * n1 * cos(theta)))
-    transmit_steering = transmit_steering / sqrt(Nt)
-    for i in range(0, count_vehicle):
-        w_k = precoding_matrix[:, index]
-        w_k = precoding_matrix[:, i]
-        link = abs(gain * pathloss * transmit_steering * w_k)
-
-        link = link ** 2
-        if i == index:
-            self.link_own = link
-        else:
-            self.link_inter += link
-
-    sinr = self.link_own / (self.link_inter + deltaK_Square)  # deltaK_square is set manually by himself
-    return sinr
-
-
-
-def loss_Sumrate():
-    for vehicle in vehicles:
-        Sumrate += np.log2(1+vehicle.sinr)
-
-    return Sum_rate
 
 
 def load_model():
@@ -73,14 +45,21 @@ if __name__ == '__main__':
             tf.config.experimental.set_memory_growth(gpu, True)
 
 
-    for i in range(0,iters):
+    for i in range(0,config_parameter.iters):
 
         initial_location_x = []
         speed_dictionary = {}
 
-        for vehicle in range(0,config_parameter.num_vehicle)
+        for vehicle in range(0,config_parameter.num_vehicle):
             initial_location_x.append(np.random(50, 100))
             speed_dictionary[vehicle]=[]
+        step_index = 0
+        for
+            for time in range(0,config_parameter.one_iter_period,config_parameter.Radar_measure_slot):
+                speed_dictionary[]
+                step_index +=1
+
+            #
 
 
 
