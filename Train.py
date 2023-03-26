@@ -4,6 +4,9 @@ import tensorflow as tf
 import config
 import math
 import sys
+
+import config_parameter
+
 sys.path.append("..")
 
 from network import DL_method_NN
@@ -70,14 +73,14 @@ if __name__ == '__main__':
             tf.config.experimental.set_memory_growth(gpu, True)
 
 
-
-    RSU_location_x = 50
-    RSU_location_y = 20
     for i in range(0,iters):
 
         initial_location_x = []
-        for vehicle in range(0,num_vehicles)
+        speed_dictionary = {}
+
+        for vehicle in range(0,config_parameter.num_vehicle)
             initial_location_x.append(np.random(50, 100))
+            speed_dictionary[vehicle]=[]
 
 
 
