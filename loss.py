@@ -2,6 +2,7 @@ from math import cos, sqrt,pi,sin
 import numpy as np
 import cmath
 import config_parameter
+from scipy.signal import correlate
 from scipy.optimize import fmin_bfgs
 "This is the loss of every link quality"
 Nt=8
@@ -42,7 +43,7 @@ def calculate_steer_vector(Nt,theta):
 
 
 
-
+'''
 def Echo2RSU(self, time_delay, doppler_frequncy, theta, time):
     Reflection_coefficient = RCS / (2 * dist[self.index])
     exp_doppler = np.exp(1j * 2 * pi * t * doppler_frequency)
@@ -62,7 +63,7 @@ def Echo2RSU(self, time_delay, doppler_frequncy, theta, time):
         echo = Attenna_Gain * Reflection_Coefficient * exp_doppler * transmit_steering.T.dot(signal_umformiert) + noise
     return echo
 
-
+'''
 
 "following are the utilities for the calculation of sum rate in communication part"
 def Path_loss(distance):
@@ -76,7 +77,7 @@ def This_signal(index,pathloss,transmit_steering,combined_precoding_matrix):
     transmit_steering_hermite = transmit_steering.T.conjugate()
     #steering gong e zhuan zhi
     channel_vector = gain*pathloss*transmit_steering_hermite # remember this transmit_steering is already a transpose one
-    w_k = combined_precoding_matrix[index,]
+    w_k = combined_precoding_matrix[:,index]
     this_signal = np.dot(channel_vector,w_k)
     #this should be a dot product or elementwise?
     return abs(this_signal)
@@ -96,7 +97,7 @@ def calculate_link_sinr(this_signal,signal_sum):
     sinr = numerator/denominator
     return sinr
 
-  '''  for n1 in range(0, Nt):
+    '''  for n1 in range(0, Nt):
         transmit_steering = transmit_steering.append(np.exp(-j * pi * n1 * cos(theta)))
     transmit_steering = transmit_steering / sqrt(Nt)
     for i in range(0, config_parameter.num_vehicle):
@@ -113,28 +114,102 @@ def calculate_link_sinr(this_signal,signal_sum):
 
 
 
-def loss_Sumrate(sinr_list):
+def loss_Sumrate(real_distance,precoding_matrix,estimated_theta):
+    pathloss = []
+    transmit_steering = []
+    this_link = []
+    for index in range(0,config_parameter.num_vehicle):
+        pathloss.append(Path_loss(real_distance[index]))
+        transmit_steering.append(calculate_steer_vector(config_parameter.antenna_size,estimated_theta[index]))
+        this_link.append(This_signal(index,pathloss[index],transmit_steering[index],precoding_matrix))
     Sum_rate = 0
-    for index in config_parameter.num_vehicle:
+    sinr_list = []
+    for index in range(0,config_parameter.num_vehicle):
+        signal_sum = Sum_signal(index,this_link)
+        sinr_list.append(calculate_link_sinr(this_link[index],signal_sum))
         Sum_rate += np.log2(1+sinr_list[index])
 
     return Sum_rate
 
 
 "following is the utilities used for calculation of CRB"
-def sigma_time_delay_square():
-    return Sigma_timedelay_2
+def sigma_time_delay_square(index,distance_list,estimated_theta_list,precoding_matrix):
+    Antenna_Gain_square = config_parameter.antenna_size*config_parameter.receiver_antenna_size
+    numerator1 = (config_parameter.rou_timedelay**2)*()
+    for k in range(0,config_parameter.num_vehicle):
+        if k !=index:
+            beta_that = Reflection_coefficient(distance_list[k])
+            transmit_steering_that = calculate_steer_vector(config_parameter.antenna_size,estimated_theta_list[k])
+            transmit_steering_that_Hermite = transmit_steering_that.T.conjugate()
+            numerator1 +=abs(beta_that)**2* (abs(transmit_steering_that_Hermite)*precoding_matrix[k])**2
+    beta_this= Reflection_coefficient(distance_list[index])
+    transmit_steering_this = calculate_steer_vector(config_parameter.antenna_size,estimated_theta_list[index])
+    transmit_steering_this_Hermite = transmit_steering_this.T.conjugate()
+    denominator=(abs(beta_this)**2)*(abs(transmit_steering_this_Hermite*\
+        precoding_matrix[index,:])**2)
+    Sigma_time = numerator1/denominator
+    return Sigma_time
 #def sigma_doppler_frequency_square():
 
-def Matched_filter(echo):
-    Noise_Zkn = np.random.normal(0,config_parameter.sigma_z)
-    for n1 in range(0, Nt):
-        transmit_steering = transmit_steering.append(np.exp(-j * pi * n1 * cos(theta)))
-    transmit_steering = transmit_steering / sqrt(Nt)
+
+def Estimate_delay_and_doppler():
+
+
+    return Estimated_delay, Estimated_doppler_frequency
+def Chirp_signal():
+    #this chirp has no consideration about carrier frequency
+    slope = config_parameter.bandwidth / config_parameter.pulse_duration
+    t = np.arange(0, config_parameter.pulse_duration, 1e-9)
+    chirp = np.exp((1j * np.pi * slope * t ** 2)+ 1j * 2 * np.pi * config_parameter.Frequency_original * t )
+
+    #t = np.linspace(0, T, N, endpoint=False)
+    #f = np.linspace(-B/2, B/2, N, endpoint=False)
+    #chirp = np.exp(1j * 2 * np.pi * (f0*t + 0.5*B*t**2/T))
+    return chirp
+
+def Received_Signal(transmitted_signal,target_velocity,target_coordinates):
+    """coordination and velocity should be like
+    radar_loc = np.array([50, 100])
+    target_loc = np.array([0, 0])
+    target_vel = np.array([0, -10])"""
+    target_range = np.linalg.norm(target_coordinates - config_parameter.RSU_location)
+    real_time_delay = 2 * target_range / config_parameter.c
+
+    #here we need to reconsider if there should be a minus
+    real_doppler_shift = -2 * target_velocity.dot(target_coordinates - \
+                                                  config_parameter.RSU_location) / config_parameter.c
+
+
+    reflection_coeff = Reflection_coefficient(target_range)
+
+    #here we need to think how to get this theta
+    transmit_steering_vector = calculate_steer_vector(config_parameter.antenna_size,theta)
+
+
+    received_signal =
+    received_signal = np.sqrt(received_power) * reference_signal * np.exp(
+        1j * 2 * np.pi * target_doppler_shift * t) * np.heaviside(t - target_delay, 1) + np.sqrt(noise_power) * (
+                                  np.random.randn(len(reference_signal)) + 1j * np.random.randn(len(reference_signal)))
+
+
+
+    return received_signal
+def Matched_filter(reference_signal,tx):
+    correlation = correlate(reference_signal,tx)
+    peak_index = np.argmax(np.abs(correlation))
+    latency = peak_index / config_parameter.sampling_rate
+    estimated_distance = 0.5*latency*3e8
+    estimated_velocity = peak_index * 3e8 / (2 * target_range * \
+                                                   num_pulses * chirp_bandwidth / signal_bandwidth)
+    doppler_frequency_shift = 2 * estimated_velocity * carrier_frequency / 3e8
+    return latency,estimated_distance,estimated_velocity,doppler_frequency_shift
 def Matched_filtering_gain():
     return mfg
+
+
+
 def Reflection_coefficient(distance_this_vehicle):
-    beta = config_parameter.fading_coefficient/2*distance_this_vehicle
+    beta = config_parameter.fading_coefficient/(2*distance_this_vehicle)
     return beta
 def Echo_partial_Theta(beta,combined_precoding_matrix,vehicle_index,matched_filter_gain,theta_this):
     sin_theta =sin(theta_this)
@@ -148,7 +223,7 @@ def Echo_partial_Theta(beta,combined_precoding_matrix,vehicle_index,matched_filt
 
 
 def CRB_distance(Sigma_timedelay_2):
-    c = 300000000
+    c = config_parameter.c
     crlb_d_inv =(1/Sigma_timedelay_2)*((2/c)**2)
     CRB_d = np.linalg.inv(crlb_d_inv)
     return CRB_d
@@ -167,7 +242,7 @@ def CRB_angle(partial):
 "following is the loss function after transforming to a multitask learning"
 def loss_combined(sumrate,CRB_d,CRB_thet,sigma_sumrate,sigma_CRB_d,sigma_CRB_theta):
     #caution: aiming to maximize sumrate
-
+    final_loss = 1/sumrate + CRB_d + CRB_thet
 
     return final_loss
 

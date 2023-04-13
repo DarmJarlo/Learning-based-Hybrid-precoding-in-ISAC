@@ -7,18 +7,18 @@ import tensorflow as tf
 
 import config_parameter
 from config_parameter import rf_size, antenna_size
-class DL_method_NN(keras.Model)
+class DL_method_NN(keras.Model):
     def __init__(self):
         super().__init__()
         act_func = "relu"
         init = keras.initializers.GlorotNormal() #Xavier initializer
-        self.conv_layer1 = Conv2D(32, kernel_size=3, activation=act_func, input_shape=(10, 11, 11, 22), kernel_initializer=init, padding="same")
+        self.conv_layer1 = Conv2D(32, kernel_size=3, activation=act_func, input_shape=(1, 10, 5, 2), kernel_initializer=init, padding="same")
         self.bn1 = keras.layers.BatchNormalization()
         self.maxpool1 = MaxPooling2D()
         self.conv_layer2 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
         self.bn2 = keras.layers.BatchNormalization()
         self.maxpool2 = MaxPooling2D()
-        self.conv_layer3 = Conv2D(128, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
+        self.conv_layer3 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
         self.bn3 = keras.layers.BatchNormalization()
         self.maxpool3 = MaxPooling2D()
         self.flatten = Flatten()
