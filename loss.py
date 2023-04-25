@@ -152,10 +152,10 @@ def sigma_time_delay_square(index,distance_list,estimated_theta_list,precoding_m
 #def sigma_doppler_frequency_square():
 
 
-def Estimate_delay_and_doppler():
+#def Estimate_delay_and_doppler():
 
 
-    return Estimated_delay, Estimated_doppler_frequency
+ #   return Estimated_delay, Estimated_doppler_frequency
 def Chirp_signal():
     #this chirp has no consideration about carrier frequency
     slope = config_parameter.bandwidth / config_parameter.pulse_duration
@@ -168,6 +168,7 @@ def Chirp_signal():
     return chirp
 
 def Received_Signal(transmitted_signal,target_velocity,target_coordinates):
+    t = np.arange(0, config_parameter.pulse_duration, 1e-9)
     """coordination and velocity should be like
     radar_loc = np.array([50, 100])
     target_loc = np.array([0, 0])
@@ -186,25 +187,27 @@ def Received_Signal(transmitted_signal,target_velocity,target_coordinates):
     transmit_steering_vector = calculate_steer_vector(config_parameter.antenna_size,theta)
 
 
-    received_signal =
-    received_signal = np.sqrt(received_power) * reference_signal * np.exp(
-        1j * 2 * np.pi * target_doppler_shift * t) * np.heaviside(t - target_delay, 1) + np.sqrt(noise_power) * (
-                                  np.random.randn(len(reference_signal)) + 1j * np.random.randn(len(reference_signal)))
+    received_signal = reflection_coeff*transmit_steering_vector*\
+                      np.exp(-1j * 2 * np.pi * config_parameter.Frequency_original * (t - real_time_delay)) * np.exp(1j * 2 * np.pi * target_doppler_shift * f)
+
+    #received_signal = np.sqrt(received_power) * reference_signal * np.exp(
+     #   1j * 2 * np.pi * target_doppler_shift * t) * np.heaviside(t - target_delay, 1) + np.sqrt(noise_power) * (
+      #                            np.random.randn(len(reference_signal)) + 1j * np.random.randn(len(reference_signal)))
 
 
 
     return received_signal
-def Matched_filter(reference_signal,tx):
+def Matched_filter(reference_signal,tx,last_location_y):
     correlation = correlate(reference_signal,tx)
     peak_index = np.argmax(np.abs(correlation))
     latency = peak_index / config_parameter.sampling_rate
     estimated_distance = 0.5*latency*3e8
-    estimated_velocity = peak_index * 3e8 / (2 * target_range * \
-                                                   num_pulses * chirp_bandwidth / signal_bandwidth)
-    doppler_frequency_shift = 2 * estimated_velocity * carrier_frequency / 3e8
+    #estimated_velocity = peak_index * 3e8 / (2 * target_range * \
+                                              #     num_pulses * chirp_bandwidth / signal_bandwidth)
+    estimated_velocity = (sqrt(estimated_distance**2 - config_parameter.RSU_location[1]**2) - last_location_y)/
+    doppler_frequency_shift = 2 * estimated_velocity * config_parameter.Frequency_original / 3e8
     return latency,estimated_distance,estimated_velocity,doppler_frequency_shift
-def Matched_filtering_gain():
-    return mfg
+
 
 
 
