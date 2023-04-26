@@ -39,9 +39,9 @@ class DL_method_NN(keras.Model):
         out = self.conv_layer2(out)
         out = self.maxpool2(out)
         out = self.bn2(out)
-        out = self.conv_layer3(out)
-        out = self.maxpool3(out)
-        out = self.bn3(out)
+        #out = self.conv_layer3(out)
+        #out = self.maxpool3(out)
+        #out = self.bn3(out)
         out = self.flatten(out)
 
         out = self.dense_1(out)

@@ -1,6 +1,6 @@
 import numpy
 # some training parameters
-
+#imagine the vertical distance between RSU and highway is 20
 iters = 10
 one_iter_period = 5
 train_data_period = 1

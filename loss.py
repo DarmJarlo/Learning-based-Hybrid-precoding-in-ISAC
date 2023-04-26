@@ -204,7 +204,7 @@ def Matched_filter(reference_signal,tx,last_location_y):
     estimated_distance = 0.5*latency*3e8
     #estimated_velocity = peak_index * 3e8 / (2 * target_range * \
                                               #     num_pulses * chirp_bandwidth / signal_bandwidth)
-    estimated_velocity = (sqrt(estimated_distance**2 - config_parameter.RSU_location[1]**2) - last_location_y)/
+    estimated_velocity = (sqrt(estimated_distance**2 - config_parameter.RSU_location[1]**2) - last_location_y)/config_parameter.Radar_measure_slot
     doppler_frequency_shift = 2 * estimated_velocity * config_parameter.Frequency_original / 3e8
     return latency,estimated_distance,estimated_velocity,doppler_frequency_shift
 
@@ -225,13 +225,18 @@ def Echo_partial_Theta(beta,combined_precoding_matrix,vehicle_index,matched_filt
 
 
 
-def CRB_distance(Sigma_timedelay_2):
+def CRB_distance(index,distance_list,estimated_theta_list,precoding_matrix):
+    Sigma_timedelay_2 = sigma_time_delay_square(index,distance_list,estimated_theta_list,precoding_matrix)
     c = config_parameter.c
     crlb_d_inv =(1/Sigma_timedelay_2)*((2/c)**2)
     CRB_d = np.linalg.inv(crlb_d_inv)
     return CRB_d
 
-
+def CRB_sum(CRB_list):
+    CRB_sum = 0
+    for index in range(0,config_parameter.num_vehicle):
+        CRB_sum += CRB_list[index]
+    return CRB_sum/config_parameter.num_vehicle
 def CRB_angle(partial):
     partial_hermite = partial.T.conjugate()
     sigma_rk_inv = 1/config_parameter.sigma_rk
@@ -239,12 +244,22 @@ def CRB_angle(partial):
     CRB_theta = np.linalg.inv(sigma_rk_inv*partial*partial_hermite)
     return CRB_theta
 
-
-
-
+"following is the MUSIC algorithm to estimate the angle"
 "following is the loss function after transforming to a multitask learning"
-def loss_combined(sumrate,CRB_d,CRB_thet,sigma_sumrate,sigma_CRB_d,sigma_CRB_theta):
-    #caution: aiming to maximize sumrate
+def uncertainty_weighting(real_distance,precoding_matrix,estimated_theta):
+
+
+def loss_combined(sigma_sumrate,sigma_CRB_d,sigma_CRB_theta):
+
+    var_sumrate = np.var(loss_Sumrate(real_distance,precoding_matrix,estimated_theta))
+    CRB_d_list = []
+    CRB_thet_list = []
+    for v in range(0,config_parameter.num_vehicle)
+        CRB_d_list.append(CRB_distance(v,distance_list,estimated_theta_list,precoding_matrix))
+        CRB_thet_list.append(CRB)
+    var_CRB_distance = np.var(CRB_sum(CRB_d_list))
+    var_CRB_angle = np.var(CRB_sum(CRB_thet_list))
+
     final_loss = 1/sumrate + CRB_d + CRB_thet
 
     return final_loss

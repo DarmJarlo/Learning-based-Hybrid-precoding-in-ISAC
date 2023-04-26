@@ -13,7 +13,7 @@ from network import DL_method_NN
 from config_parameter import iters
 sys.path.append("..")
 import numpy as np
-from loss import Estimate_delay_and_doppler
+#from loss import Estimate_delay_and_doppler
 Nt=8
 Nr=8
 
@@ -35,7 +35,7 @@ def load_model():
 if __name__ == '__main__':
     model = load_model()
     Antenna_Gain = math.sqrt(config_parameter.antenna_size * config_parameter.receiver_antenna_size)
-    c = 300000000
+    c = 3e8
     # GPU settings
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
@@ -75,14 +75,20 @@ if __name__ == '__main__':
 
 
     for i in range(0,config_parameter.iters):
+        print("1")
         communication_loss = 0
         initial_location_x = {}
-        speed_dictionary = {}
+        speed_dictionary = np.random.uniform(low=20, high=22, size=(config_parameter.num_vehicle,\
+                                                                    config_parameter.one_iter_period/(config_parameter.Radar_measure_slot)))
+
         real_theta = {}
         for vehicle in range(0,config_parameter.num_vehicle):
             initial_location_x[vehicle] = []
-            #initialize location for every car
-            initial_location_x[vehicle].append(np.random(50, 100))
+            #initialize location for every car [0,100)
+            random_location = np.random.rand(1)*100
+            print(random_location)
+            initial_location_x[vehicle].append(random_location[0])
+            print(initial_location_x)
             speed_dictionary[vehicle]=[]
         step_index = 0
         dist_index = 1
@@ -93,23 +99,30 @@ if __name__ == '__main__':
         estimated_theta = {}
         real_distance = {}
         for v in range(0,config_parameter.num_vehicle):
-            for time in range(0,config_parameter.one_iter_period,config_parameter.Radar_measure_slot):
+            real_distance[v]=[]
+            estimated_distance[v] = []
+            estimated_velocity[v] = []
+            print(initial_location_x[v][step_index])
+            #time_array = np.arange(0,config_parameter.one_iter_period,config_parameter.Radar_measure_slot)
+            #print(time_array)
+            for time in np.arange(0,config_parameter.one_iter_period,config_parameter.Radar_measure_slot):
                 #calculate the real distance between rsu and vehicles,initialize speed for every timeslot
-                real_distance[v][step_index] = math.sqrt(config_parameter.RSU_location_y**2+\
-                                                         (config_parameter.RSU_location_x-initial_location_x[v][step_index])**2)
-                speed_dictionary[v].append(np.random(20,22))
-                if time > 0:
+                real_distance[v].append(math.sqrt(config_parameter.RSU_location[1]**2+\
+                                                         (config_parameter.RSU_location[0]-initial_location_x[v][step_index])**2))
+                print(real_distance)
+                speed_dictionary[v].append(2*np.random.rand(1)+20)
+                #if time > 0:
                     #calculate the new location
-                    dist_new = initial_location_x[v]+\
-                               config_parameter.Radar_measure_slot*speed_dictionary[v][dist_index]
-                    initial_location_x[vehicle].append(dist_new)
+                dist_new = initial_location_x[v]+\
+                               config_parameter.Radar_measure_slot*speed_dictionary[v][step_index]
+                initial_location_x[v].append(dist_new)
 
-                    dist_index +=1
+                dist_index +=1
                 step_index +=1
-                estimated_distance[v][0] = 0
-                estimated_velocity[v][0] = 0
+                estimated_distance[v].append(0)
+                estimated_velocity[v].append(0)
                 if time >0:
-                    estimated_time_delay[v],estimated_doppler_frequency[v] = Estimate_delay_and_doppler()
+                    latency,estimated_distance,estimated_velocity,doppler_frequency_shift = loss.Matched_filter(reference,echo,last_location_y=)
 
 
 
