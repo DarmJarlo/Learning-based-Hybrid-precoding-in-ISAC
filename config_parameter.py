@@ -6,7 +6,7 @@ one_iter_period = 5 #s
 train_data_period = 1 #s
 num_vehicle =  5
 highway_length = 540
-RSU_location = numpy.array([270,20])
+RSU_location = numpy.array([270,-20])
 Initial_location_min = 50
 Initial_location_max = 100
 Radar_measure_slot = 0.02 #s
@@ -43,4 +43,4 @@ bandwidth = 1e6  # bandwidth of the chirp signal in Hz
 pulse_duration = 10e-6  # pulse duration in seconds
 R_max = 200  # maximum range in meters
 Signal_noise_power = 0.1#noise for echo signal
-
+sigma_rk = Signal_noise_power

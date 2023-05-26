@@ -51,12 +51,12 @@ if __name__ == '__main__':
     crb_d_sum_list = []
     crb_angle_sum_list = []
     @tf.function
-    def train_step(input,real_distance,step):
+    def train_step(input,real_distance_list,last_real_distance_list,step):
         with tf.GradientTape() as tape:
             output = model(input)#dont forget here we are inputing a whole batch
             print('oooooooooooo',step,output)
 
-            Analog_matrix,Digital_matrix,predict_theta_list = loss.Output2PrecodingMatrix(Output=output)
+            Analog_matrix,Digital_matrix= loss.Output2PrecodingMatrix(Output=output)
             precoding_matrix = loss.Precoding_matrix_combine(Analog_matrix,Digital_matrix)
             #print(predictions)
             estimated_theta_list=input[0,step,:,1]
@@ -66,12 +66,12 @@ if __name__ == '__main__':
             CRB_d_list = []
             CRB_angle_list = []
             for v in range(config_parameter.num_vehicle):
-
-                CRB_d = loss.CRB_distance()
+                cos_theta = real_distance_list[v]**2 - last_real_distance_list[v]**2
+                CRB_d = loss.CRB_distance(index=v,distance_list=real_distance,estimated_theta_list,precoding_matrix)
                 CRB_d_list.append(CRB_d)
-                CRB_angle =loss.CRB_distance(index=v,real_distance)
-            combined_loss = loss.loss_combined(communication_loss,CRB_d=,CRB_thet=,sigma_sumrate=,sigma_CRB_d=,\
-            #                                   sigma_CRB_theta=)
+                CRB_angle =loss.CRB_distance(index=v,real_distance,estimated_theta_list,precoding_matrix)
+                CRB_angle_list.append(CRB_angle)
+            combined_loss = loss.loss_combined(c
         gradients = tape.gradient(communication_loss, model.trainable_variables)
 
 
@@ -223,28 +223,28 @@ if __name__ == '__main__':
 
 
 
-    input = np.zeros(shape=())
-    input = np.vstack(estimated_distance,estimated_theta)
+    #input = np.zeros(shape=())
+    #input = np.vstack(estimated_distance,estimated_theta)
 
 
 
     # start training
-    for epoch in range(config_parameter.iters):
+    #for epoch in range(config_parameter.iters):
 
         'adaptive learning rate for adadelta'
 
-        if epoch < 6:
-            alpha = epoch*0.2+0.2
-        elif epoch > 15 and accu < 0.85:
-            alpha = 0.2+(epoch-16*0.2)
-        else:
-            alpha = alpha/5
-        print("alpha",alpha)
+     #   if epoch < 6:
+      #      alpha = epoch*0.2+0.2
+       # elif epoch > 15 and accu < 0.85:
+        #    alpha = 0.2+(epoch-16*0.2)
+        #else:
+         #   alpha = alpha/5
+        #print("alpha",alpha)
 
         #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=alpha)
 
-        tf.saved_model.save(model, 'Keras_models/new_model')
+        #tf.saved_model.save(model, 'Keras_models/new_model')
     '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                    monitor='val_accuracy',
                                    save_weights_only=False, period=1, verbose=1, save_best_only=False)'''
-    tf.saved_model.save(model, 'Keras_models/new_model')
+    #tf.saved_model.save(model, 'Keras_models/new_model')

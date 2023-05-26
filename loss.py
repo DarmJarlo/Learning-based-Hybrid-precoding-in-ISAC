@@ -1,5 +1,5 @@
 '''
-our coordination is
+our coordination is general. angle is
 '''
 from math import cos, sqrt,pi,sin
 import numpy as np
@@ -8,6 +8,7 @@ import config_parameter
 from scipy.signal import correlate
 from scipy.optimize import fmin_bfgs
 from scipy import signal
+
 Nt=8
 Nr=8
 Antenna_Gain = sqrt(Nt*Nr)
@@ -166,7 +167,7 @@ def loss_Sumrate(real_distance,precoding_matrix,estimated_theta):
     this_link = []
     for index in range(0,config_parameter.num_vehicle):
         pathloss.append(Path_loss(real_distance[index]))
-        transmit_steering.append(calculate_steer_vector(config_parameter.antenna_size,estimated_theta[index]))
+        transmit_steering.append(calculate_steer_vector_this(config_parameter.antenna_size,estimated_theta[index]))
         this_link.append(This_signal(index,pathloss[index],transmit_steering[index],precoding_matrix))
     Sum_rate = 0
     sinr_list = []
@@ -226,7 +227,7 @@ def Chirp_signal_new():
     for v in config_parameter.num_vehicle:
         chirp.append(chirp_signal)
     return chirp
-def Received_Signal(real_distance,index,target_velocity,target_coordinates):
+def Received_Signal(real_distance,index,target_velocity,target_coordinates,precoding_matrix):
     #input target_velocity as a coordinate
     real_time_delay = 2 * real_distance / config_parameter.c
     target_direction_norm = np.linalg.norm(target_coordinates - config_parameter.RSU_location)
@@ -237,13 +238,17 @@ def Received_Signal(real_distance,index,target_velocity,target_coordinates):
     #if target goes far, target_coordinates- RSU_location is actually getting larger
     f_observed =  (1 + (target_velocity_between / config_parameter.c)) * config_parameter.Frequency_original
     real_doppler_shift = f_observed-config_parameter.Frequency_original
-    antenna_gain = math.sqrt(config_parameter.antenna_size*config_parameter.receiver_antenna_size)
+    antenna_gain = sqrt(config_parameter.antenna_size*config_parameter.receiver_antenna_size)
     #reflection_coeff = []
     reflection_coeff=Reflection_coefficient(real_distance)
     transmit_steering_vector = calculate_steer_vector_this(theta)
+    chirp = Chirp_signal_new()
+    echo_signal = np.pad(chirp[index], (int(real_time_delay * config_parameter.sampling_rate), 0), mode='constant')
+    echo_signal =antenna_gain*reflection_coeff*transmit_steering_vector*echo_signal*\
+                 np.exp(1j * 2 * np.pi * real_doppler_shift * t)
     noise = np.random.normal(0, np.sqrt(config_parameter.Signal_noise_power / 2), len(echo_signal)) + 1j * np.random.normal(0, np.sqrt(
-        config.parameter.Signal_noise_power / 2), len(echo_signal))
-
+        config_parameter.Signal_noise_power / 2), len(echo_signal))
+    return echo_signal+noise
 
 '''def Received_Signal_old(transmitted_signal,target_velocity_x,target_coordinates,real_distance):
     #target velocity is so far a number not a coordinate,can be transfered to a coordinates
@@ -278,18 +283,20 @@ def Received_Signal(real_distance,index,target_velocity,target_coordinates):
 
     return received_signal
     '''
-def Matched_filter(reference_signal,tx,last_location_x):
-    correlation = correlate(reference_signal,tx)
+def Matched_filter(reference_signal,received_signal,estimated_distance_last):
+    correlation = correlate(reference_signal,received_signal)
     peak_index = np.argmax(np.abs(correlation))
     latency = peak_index / config_parameter.sampling_rate
-    estimated_distance = 0.5*latency*3e8
+    estimated_distance = 0.5*latency*config_parameter.c
     #estimated_velocity = peak_index * 3e8 / (2 * target_range * \
                                               #     num_pulses * chirp_bandwidth / signal_bandwidth)
-    estimated_velocity = (sqrt(estimated_distance**2 - config_parameter.RSU_location[1]**2) - last_location_x)/config_parameter.Radar_measure_slot
+    #estimated_velocity = (sqrt(estimated_distance**2 - config_parameter.RSU_location[1]**2) - last_location_x)/config_parameter.Radar_measure_slot
+    #movement_norm = np.linalg.norm()
+    estimated_velocity_between_norm = (estimated_distance-estimated_distance_last)/config_parameter.Radar_measure_slot
     #attention this velocity is about velocity on x-axis
 
-    doppler_frequency_shift = 2 * estimated_velocity * config_parameter.Frequency_original / 3e8
-    return latency,estimated_distance,estimated_velocity,doppler_frequency_shift
+    doppler_frequency_shift = 2 * estimated_velocity_between_norm * config_parameter.Frequency_original / 3e8
+    return latency,estimated_distance,estimated_velocity_between_norm,doppler_frequency_shift
 
 
 
@@ -305,10 +312,10 @@ def Echo_partial_Theta(beta,combined_precoding_matrix,vehicle_index,matched_filt
                    combined_precoding_matrix*combined_precoding_matrix[vehicle_index][nt]\
                    *(cmath.exp(1j*(nt-1)*cos(theta_this)))*1j*pi*(nt-1)*sin_theta
     return partial
-def matched_filter_gain(estimated_dopplershift,real_dopplershift,estimated_timedelay,real_timedelay):
-    def integrand(estimated_dopplershift,real_dopplershift,estimated_timedelay,real_timedelay):
-        signal1 =  np.pad(Chirp_signal_new(), (int(estimated_timedelay * sampling_rate), 0), mode='constant')
-        signal2 =  Chirp_signal(t-estimated_timedelay)
+#def matched_filter_gain(estimated_dopplershift,real_dopplershift,estimated_timedelay,real_timedelay):
+ #   def integrand(estimated_dopplershift,real_dopplershift,estimated_timedelay,real_timedelay):
+  #      signal1 =  np.pad(Chirp_signal_new(), (int(estimated_timedelay * sampling_rate), 0), mode='constant')
+   #     signal2 =  Chirp_signal(t-estimated_timedelay)
 
 
 
@@ -337,10 +344,10 @@ def CRB_sum(CRB_list):
     return CRB_sum/config_parameter.num_vehicle
 "following is the MUSIC algorithm to estimate the angle"
 "following is the loss function after transforming to a multitask learning"
-def uncertainty_weighting(real_distance,precoding_matrix,estimated_theta):
+#def uncertainty_weighting(real_distance,precoding_matrix,estimated_theta):
 
 
-def loss_combined(sigma_sumrate,sigma_CRB_d,sigma_CRB_the,sumrate_list,sumrate_last):
+def loss_combined(CRB_d_list,CRB_thet_list,sumrate_list,sumrate_last):
 
     #var_sumrate = np.var(loss_Sumrate(real_distance,precoding_matrix,estimated_theta))
     #CRB_d_list = []
