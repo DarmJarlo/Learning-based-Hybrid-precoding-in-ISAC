@@ -50,10 +50,6 @@ if __name__ == '__main__':
     )
     crb_d_sum_list = []
     crb_angle_sum_list = []
-    last_real_distance_list = []
-    sum_rate_list_reciprocal = []
-    sum_rate_list = []
-
     @tf.function
     def train_step(input,real_distance_list,last_real_distance_list,step):
         with tf.GradientTape() as tape:
@@ -67,12 +63,6 @@ if __name__ == '__main__':
             print("theta_list_shape",estimated_theta_list.shape)
             #steering_vector = [loss.calculate_steer_vector(predict_theta_list[v] for v in range(config_parameter.num_vehicle)
             communication_loss = loss.loss_Sumrate(real_distance,precoding_matrix,predict_theta_list)
-            with open("sum_rate.txt", "w") as file:
-                # Write the value of the variable to the file
-                file.write(communication_loss)
-            sum_rate_list_reciprocal.append(1/communication_loss)
-            sum_rate_list.append(communication_loss)
-
             CRB_d_list = []
             CRB_angle_list = []
             for v in range(config_parameter.num_vehicle):
@@ -81,15 +71,8 @@ if __name__ == '__main__':
                 CRB_d_list.append(CRB_d)
                 CRB_angle =loss.CRB_distance(index=v,real_distance,estimated_theta_list,precoding_matrix)
                 CRB_angle_list.append(CRB_angle)
-            crb_d_sum_list.append(CRB_d_list)
-            crb_angle_sum_list.append(CRB_angle_list)
             combined_loss = loss.loss_combined(c
-
-            if config_parameter.loss_mode == Upper_sum_rate:
-                gradients = tape.gradient(communication_loss, model.trainable_variables)
-            elif config_parameter.loss_mode == lower_bound_crb:
-                gradients = tape.gradient(crb_combined_loss, model.trainable_variables)
-
+        gradients = tape.gradient(communication_loss, model.trainable_variables)
 
 
         optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
@@ -119,13 +102,10 @@ if __name__ == '__main__':
             print(random_location)
             initial_location_x[vehicle]= random_location
             location[vehicle] = [random_location]
-            location_y[vehicle] = [0]
             for i in range(len(speed_dictionary[vehicle])):
 
                 location[vehicle][i+1] = config_parameter.Radar_measure_slot*speed_dictionary[vehicle][i]+\
                     location[vehicle][i]
-                location_y[vehicle][]
-
 
             real_location_x[vehicle]=location[vehicle][1:]
         print("location while start measuring",real_location_x)
@@ -135,9 +115,6 @@ if __name__ == '__main__':
 
         #step_index = 0
         #dist_index = 1
-        real_time_delay={}
-        real_doppler_frequency = {}
-        real_theta = {}
         estimated_time_delay = {}
         estimated_doppler_frequency = {}
         estimated_distance = {}
@@ -156,7 +133,7 @@ if __name__ == '__main__':
             for time in np.arange(0,config_parameter.one_iter_period/config_parameter.Radar_measure_slot):
                 #calculate the real distance between rsu and vehicles,initialize speed for every timeslot
                 real_distances[v].append(math.sqrt((config_parameter.RSU_location[1]) ** 2 + (location[v][time]-config_parameter.RSU_location[0]) ** 2))
-                real_time_delay = 2 * real_distance / config_parameter.c
+
         #
 
                 #if time > 0:
@@ -168,9 +145,9 @@ if __name__ == '__main__':
                 #dist_index +=1
                 #step_index +=1
                 target_coordinates=(location[v][time],0)
-                #tx = loss.Received_Signal(Reference_Signal,speed_dictionary[v][time],\
-                 #                         target_coordinates,real_distances[v][time])
-                #latency,estimated_dist_this,estimated_velocity_this,doppler_frequency_shift = loss.Matched_filter(Reference_Signal,tx,)
+                tx = loss.Received_Signal(Reference_Signal,speed_dictionary[v][time],\
+                                          target_coordinates,real_distances[v][time])
+                latency,estimated_dist_this,estimated_velocity_this,doppler_frequency_shift = loss.Matched_filter(Reference_Signal,tx,)
                 estimated_latency[v].append(latency)
                 estimated_doppler_frequency[v].append(doppler_frequency_shift)
                 estimated_distance[v].append(estimated_dist_this)

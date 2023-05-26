@@ -73,7 +73,11 @@ if __name__ == '__main__':
 
 
 
+
+
+
     for i in range(0, config_parameter.iters):
+        '''
         with open('data.txt', 'r') as file:
             # Read the lines of the file
             lines = file.readlines()
@@ -85,3 +89,12 @@ if __name__ == '__main__':
         for line in lines:
             print(line)
         #compute the angle data
+        '''
+        location = []
+        real_theta = []
+        speed_dictionary= [np.random.uniform(low=config_parameter.speed_low, high=config_parameter.speed_high) \
+                                     for _ in
+                                     range(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)]
+        speed_dictionary=
+        # initialize location for every car [0,100)
+        random_location = (np.random.rand(1)) * 100

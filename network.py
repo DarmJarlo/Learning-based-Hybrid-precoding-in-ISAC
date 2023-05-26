@@ -1,3 +1,16 @@
+'''
+this is the NN for beamforming
+input contains three factors maybe ( angle, distance, velocity)
+think we need to add the velocity(not sure estimated or the real) as the input
+
+the question remains is if we need to use real_angle and real_distance or the estimated one
+
+
+2. need to consider the specific output should link to the specific input, to let every user has
+linked element of matrix
+'''
+
+
 import tensorflow.keras as keras
 from keras.layers import Dense
 from keras.layers import Conv2D
@@ -59,7 +72,7 @@ class DL_method_NN(keras.Model):
         super().__init__()
         act_func = "relu"
         init = keras.initializers.GlorotNormal() #Xavier initializer
-        self.conv_layer1 = Conv2D(32, kernel_size=3, activation=act_func, input_shape=(1, 10, 5, 2), kernel_initializer=init, padding="same")
+        self.conv_layer1 = Conv2D(32, kernel_size=3, activation=act_func, input_shape=(1, 10, 5, 3), kernel_initializer=init, padding="same")
         self.bn1 = keras.layers.BatchNormalization()
         self.maxpool1 = MaxPooling2D()
         self.conv_layer2 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")

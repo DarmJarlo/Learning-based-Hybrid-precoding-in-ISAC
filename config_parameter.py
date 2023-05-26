@@ -17,9 +17,18 @@ fading_coefficient = 1 + 1j
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
 FurtherTrain = False
+#these are for the simulation test
 speed_low = 20
 speed_high = 22
+Initial_location_min = 50
+Initial_location_max = 100
 
+
+
+train_speed_low = 18
+train_speed_high = 25
+train_initial_location_min = 30
+train_initial_location_max = 120
 
 #setup for metrics
 rf_size = 8
@@ -44,3 +53,8 @@ pulse_duration = 10e-6  # pulse duration in seconds
 R_max = 200  # maximum range in meters
 Signal_noise_power = 0.1#noise for echo signal
 sigma_rk = Signal_noise_power
+
+
+loss_mode = Upper_sum_rate   # three mode
+#loss_mode = lower_bound_crb
+#loss_mode = combined_loss

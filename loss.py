@@ -318,7 +318,17 @@ def Echo_partial_Theta(beta,combined_precoding_matrix,vehicle_index,matched_filt
    #     signal2 =  Chirp_signal(t-estimated_timedelay)
 
 
+def Matched_filtering_gain():
+    '''
+        power_signal = np.sum(np.abs(filtered_signal) ** 2)
+    power_noise = np.sum(np.abs(original_signal - filtered_signal) ** 2)
 
+    gain = power_signal / power_noise
+    gain_dB = 10 * np.log10(gain)
+
+    '''
+    #because the power of signal, the power of attenna and the power of noise is constant.
+    return 10
 
 
 
@@ -330,7 +340,10 @@ def CRB_distance(index,distance_list,estimated_theta_list,precoding_matrix):
     CRB_d = 1/ crlb_d_inv
     return CRB_d
 
-def CRB_angle(partial):
+def CRB_angle(index,distance_list,precoding_matrix.estimated_theta_list):
+    beta = Reflection_coefficient(distance_list[index])
+    matched_filter_gain = Matched_filtering_gain()
+    partial = Echo_partial_Theta(beta,precoding_matrix,index,matched_filter_gain,estimated_theta_list[index])
     partial_hermite = partial.T.conjugate()
     sigma_rk_inv = 1/config_parameter.sigma_rk
 
@@ -347,7 +360,7 @@ def CRB_sum(CRB_list):
 #def uncertainty_weighting(real_distance,precoding_matrix,estimated_theta):
 
 
-def loss_combined(CRB_d_list,CRB_thet_list,sumrate_list,sumrate_last):
+def loss_combined(CRB_d_list,CRB_thet_list,sumrate_list):
 
     #var_sumrate = np.var(loss_Sumrate(real_distance,precoding_matrix,estimated_theta))
     #CRB_d_list = []
@@ -365,7 +378,7 @@ def loss_combined(CRB_d_list,CRB_thet_list,sumrate_list,sumrate_last):
 
 
 
-    final_loss = 1/(sumrate_last*2*var_sumrate) + CRB_combined/(2*var_CRB_combined) + np.log(var_CRB_combined*var_sumrate)
+    final_loss = 1/(sumrate_list*2*var_sumrate) + CRB_combined/(2*var_CRB_combined) + np.log(var_CRB_combined*var_sumrate)
 
     return final_loss
 
