@@ -35,9 +35,10 @@ def load_model():
 if __name__ == '__main__':
     model = load_model()
     Antenna_Gain = math.sqrt(config_parameter.antenna_size * config_parameter.receiver_antenna_size)
-    c = 3e8
+    c = config_parameter.c
     # GPU settings
     gpus = tf.config.experimental.list_physical_devices('GPU')
+    print(gpus)
     if gpus:
         for gpu in gpus:
             tf.config.experimental.set_memory_growth(gpu, True)
@@ -48,14 +49,14 @@ if __name__ == '__main__':
         epsilon=1e-07,
         name="Adagrad"
     )
-    crb_d_sum_list = []
-    crb_angle_sum_list = []
-    last_real_distance_list = []
-    sum_rate_list_reciprocal = []
-    sum_rate_list = []
+    crb_d_sum_list = [] # the crb distance sum at all timepoints in this list
+    crb_angle_sum_list = [] # the crb angle sum at all timepoints in this list
+
+    sum_rate_list_reciprocal = [] #the sum rate at all timepoints in this list
+    sum_rate_list = [] # the sum rate at all timepoints in this list
 
     @tf.function
-    def train_step(input,real_distance_list,last_real_distance_list,step):
+    def train_step(input,target_coordinates,real_distance_list,last_real_distance_list,step):
         with tf.GradientTape() as tape:
             output = model(input)#dont forget here we are inputing a whole batch
             print('oooooooooooo',step,output)
@@ -64,6 +65,11 @@ if __name__ == '__main__':
             precoding_matrix = loss.Precoding_matrix_combine(Analog_matrix,Digital_matrix)
             #print(predictions)
             #estimated_theta_list=input[0,step,:,1]
+            real_theta = []# this list is for the real
+            for v in range(config_parameter.num_vehicle):
+                real_theta.append(math.atan2(target_coordinates[v][0]-config_parameter.RSU_location[0],target_coordinates[v][1]-config_parameter.RSU_location[1]))
+
+
             print("theta_list_shape",estimated_theta_list.shape)
             #steering_vector = [loss.calculate_steer_vector(predict_theta_list[v] for v in range(config_parameter.num_vehicle)
             communication_loss = loss.loss_Sumrate(real_distance,precoding_matrix,predict_theta_list)
@@ -83,11 +89,11 @@ if __name__ == '__main__':
                 CRB_angle_list.append(CRB_angle)
             crb_d_sum_list.append(CRB_d_list)
             crb_angle_sum_list.append(CRB_angle_list)
-            combined_loss = loss.loss_combined(c
+            combined_loss = loss.loss_combined(c)
 
-            if config_parameter.loss_mode == Upper_sum_rate:
+            if config_parameter.loss_mode == "Upper_sum_rate":
                 gradients = tape.gradient(communication_loss, model.trainable_variables)
-            elif config_parameter.loss_mode == lower_bound_crb:
+            elif config_parameter.loss_mode == "lower_bound_crb":
                 gradients = tape.gradient(crb_combined_loss, model.trainable_variables)
 
 
@@ -103,31 +109,52 @@ if __name__ == '__main__':
         Reference_Signal = loss.Chirp_signal()
         print("1")
         communication_loss = 0
+
+
+        #generate dataset
         initial_location_x = {}
         #speed_dictionary = np.random.uniform(low=config_parameter.speed_low, high=config_parameter.speed_high, size=(config_parameter.num_vehicle,\
-                                                                    config_parameter.one_iter_period/(config_parameter.Radar_measure_slot)))
-        speed_dictionary = {}
-        real_location_x = {} #this one doesn't include the initial location
-        real_theta = {}
-        location = {} #this one include the initial location
+                         #                                           config_parameter.one_iter_period/(config_parameter.Radar_measure_slot)))
+        speed_dictionary = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
+        real_location_x = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot)) #this one doesn't include the initial location
+        real_theta = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
+        real_distance_list = np.zeros(shape=(
+        config_parameter.num_vehicle, config_parameter.one_iter_period / config_parameter.Radar_measure_slot))
+        last_real_distance_list = np.zeros(shape=(
+        config_parameter.num_vehicle, config_parameter.one_iter_period / config_parameter.Radar_measure_slot))
+        location = np.zeros(shape=(config_parameter.num_vehicle,(config_parameter.one_iter_period/config_parameter.Radar_measure_slot+1))) #this one include the initial location
+        location_y = np.zeros(shape=(config_parameter.num_vehicle,(config_parameter.one_iter_period/config_parameter.Radar_measure_slot+1)))
+        target_coordinates = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
         for vehicle in range(0,config_parameter.num_vehicle):
-            initial_location_x[vehicle] = []
+            #initial_location_x[vehicle] = []
             speed_dictionary[vehicle] = [np.random.uniform(low=config_parameter.speed_low,high=config_parameter.speed_high)\
                                          for _ in range(config_parameter.one_iter_period/config_parameter.Radar_measure_slot)]
+            print(speed_dictionary.shape)
             #initialize location for every car [0,100)
             random_location = (np.random.rand(1))*100
             print(random_location)
             initial_location_x[vehicle]= random_location
-            location[vehicle] = [random_location]
-            location_y[vehicle] = [0]
-            for i in range(len(speed_dictionary[vehicle])):
-
-                location[vehicle][i+1] = config_parameter.Radar_measure_slot*speed_dictionary[vehicle][i]+\
-                    location[vehicle][i]
-                location_y[vehicle][]
+            location[vehicle,0] = [random_location]
+            #location_y[vehicle] = [0]
+            for i in range(config_parameter.one_iter_period/config_parameter.Radar_measure_slot):
 
 
+
+                location[vehicle,i+1] = config_parameter.Radar_measure_slot*speed_dictionary[vehicle,i]+\
+                    location[vehicle,i]
+
+                #location_y[vehicle].append(0)
+                real_theta[vehicle,i]=math.atan2(location[vehicle,i] - config_parameter.RSU_location[0],
+                                             location_y[vehicle,i] - config_parameter.RSU_location[1])
+                target_coordinates[vehicle,i] = (location[v,i+1], location_y[v,i+1])
+                real_distance_list[vehicle, i] = math.sqrt((location[vehicle,i] - config_parameter.RSU_location[0])**2\
+                                                               +(location_y[vehicle,i] - config_parameter.RSU_location[1])**2)
             real_location_x[vehicle]=location[vehicle][1:]
+        for vehicle in range(0,config_parameter.num_vehicle):
+            for time in range(0,config_parameter.one_iter_period/config_parameter.Radar_measure_slot):
+                sigma_time_delay[v, time] = loss.Sigma_time_delay_square(index=v,distance_list = real_distance[:, time],estimated_theta_list=real_theta[:,time],\
+                                                                         precoding_matrix=last_precoding_matrix[]
+                sigma_doppler[v, time] = loss.Sigma_time_delay_square(index=vdistance_list = real_distance[:, time],estimated_theta_list=
         print("location while start measuring",real_location_x)
 
 
@@ -135,28 +162,24 @@ if __name__ == '__main__':
 
         #step_index = 0
         #dist_index = 1
-        real_time_delay={}
-        real_doppler_frequency = {}
-        real_theta = {}
-        estimated_time_delay = {}
-        estimated_doppler_frequency = {}
-        estimated_distance = {}
-        estimated_velocity = {}
-        estimated_theta = {}
-        real_distance = {}
+        real_time_delay=np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
+        real_doppler_frequency = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
+        #real_theta = {}
+        estimated_time_delay = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
+        estimated_doppler_frequency = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
+        estimated_distance = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
+        estimated_velocity = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
+        estimated_theta = real_theta
+        #real_distance = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
+        sigma_time_delay[v, time] = loss.Sigma_time_delay_square(index=vdistance_list = real_distance[:, time],
         for v in range(0,config_parameter.num_vehicle):
-            real_distance[v]=[]
-            estimated_distance[v] = []
-            estimated_velocity[v] = []
-            estimated_time_delay[v] = []
-            estimated_doppler_frequency[v] = []
 
-            #time_array = np.arange(0,config_parameter.one_iter_period,config_parameter.Radar_measure_slot)
-            #print(time_array)
             for time in np.arange(0,config_parameter.one_iter_period/config_parameter.Radar_measure_slot):
                 #calculate the real distance between rsu and vehicles,initialize speed for every timeslot
-                real_distances[v].append(math.sqrt((config_parameter.RSU_location[1]) ** 2 + (location[v][time]-config_parameter.RSU_location[0]) ** 2))
-                real_time_delay = 2 * real_distance / config_parameter.c
+                real_distances[v][time]=math.sqrt((config_parameter.RSU_location[1]) ** 2 + (location[v][time]-config_parameter.RSU_location[0]) ** 2)
+                real_time_delay[v,time] = 2 * real_distance[v,time] / config_parameter.c
+
+                estimated_time_delay[v,time] = real_time_delay[v,time] + np.random.normal(0, np.sqrt(config_parameter.Signal_noise_power))
         #
 
                 #if time > 0:

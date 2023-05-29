@@ -25,8 +25,8 @@ def Output2PrecodingMatrix_with_theta(Output):
     Analog_part = cmath.exp(index for index in Output[0:config_parameter.antenna_size*config_parameter.rf_size-1])
     Analog_Matrix_org = np.reshape(Analog_part,(config_parameter.antenna_size,config_parameter.rf_size))
     for i in range(0,config_parameter.antenna_size):
-        for j in range(0,config_parameter.rf_size):
-            Analog_Matrix[i][j]=np.exp(Analog_Matrix_org[i][j])
+        for r in range(0,config_parameter.rf_size):
+            Analog_Matrix[i][r]=np.exp(1j*Analog_Matrix_org[i][r])
     adder = config_parameter.antenna_size*config_parameter.rf_size
     Digital_real = Output[adder : adder +config_parameter.rf_size*config_parameter.num_vehicle-1]
     adder2 = adder +config_parameter.rf_size*config_parameter.num_vehicle
@@ -49,8 +49,8 @@ def Output2PrecodingMatrix(Output):
     Analog_part = cmath.exp(index for index in Output[0:config_parameter.antenna_size*config_parameter.rf_size-1])
     Analog_Matrix_org = np.reshape(Analog_part,(config_parameter.antenna_size,config_parameter.rf_size))
     for i in range(0,config_parameter.antenna_size):
-        for j in range(0,config_parameter.rf_size):
-            Analog_Matrix[i][j]=np.exp(Analog_Matrix_org[i][j])
+        for r in range(0,config_parameter.rf_size):
+            Analog_Matrix[i][j]=np.exp(1j*Analog_Matrix_org[i][r])
     adder = config_parameter.antenna_size*config_parameter.rf_size
     Digital_real = Output[adder : adder +config_parameter.rf_size*config_parameter.num_vehicle-1]
     adder2 = adder +config_parameter.rf_size*config_parameter.num_vehicle
@@ -180,22 +180,42 @@ def loss_Sumrate(real_distance,precoding_matrix,estimated_theta):
 
 
 "following is the utilities used for calculation of CRB"
-def sigma_time_delay_square(index,distance_list,estimated_theta_list,precoding_matrix):
+def Sigma_time_delay_square(index,distance_list,estimated_theta_list,precoding_matrix):
     Antenna_Gain_square = config_parameter.antenna_size*config_parameter.receiver_antenna_size
-    numerator1 = (config_parameter.rou_timedelay**2)*()
+    numerator1 = 0
+    for k in range(0,config_parameter.num_vehicle):
+        if k !=index:
+            beta_that = Reflection_coefficient(distance_list[k])
+            transmit_steering_that = calculate_steer_vector_this(estimated_theta_list[k])
+            transmit_steering_that_Hermite = transmit_steering_that.T.conjugate()
+            numerator1 +=abs(beta_that)**2* (abs(transmit_steering_that_Hermite)*precoding_matrix[k])**2
+
+    numerator1 = (config_parameter.rou_timedelay ** 2) * (numerator1+config_parameter.sigma_z)
+    beta_this= Reflection_coefficient(distance_list[index])
+    transmit_steering_this = calculate_steer_vector_this(estimated_theta_list[index])
+    transmit_steering_this_Hermite = transmit_steering_this.T.conjugate()
+    denominator=(abs(beta_this)**2)*(abs(transmit_steering_this_Hermite*\
+        precoding_matrix[index,:])**2)
+    Sigma_time = numerator1/denominator
+    return Sigma_time
+def Sigma_doppler_square(index,distance_list,estimated_theta_list,precoding_matrix):
+    Antenna_Gain_square = config_parameter.antenna_size*config_parameter.receiver_antenna_size
+    #numerator1 = (config_parameter.rou_timedelay**2)*()
+    numerator1 = 0
     for k in range(0,config_parameter.num_vehicle):
         if k !=index:
             beta_that = Reflection_coefficient(distance_list[k])
             transmit_steering_that = calculate_steer_vector(config_parameter.antenna_size,estimated_theta_list[k])
             transmit_steering_that_Hermite = transmit_steering_that.T.conjugate()
             numerator1 +=abs(beta_that)**2* (abs(transmit_steering_that_Hermite)*precoding_matrix[k])**2
+    numerator1 = (config_parameter.rou_dopplershift**2)* (numerator1+config_parameter.sigma_z)
     beta_this= Reflection_coefficient(distance_list[index])
     transmit_steering_this = calculate_steer_vector(config_parameter.antenna_size,estimated_theta_list[index])
     transmit_steering_this_Hermite = transmit_steering_this.T.conjugate()
     denominator=(abs(beta_this)**2)*(abs(transmit_steering_this_Hermite*\
         precoding_matrix[index,:])**2)
-    Sigma_time = numerator1/denominator
-    return Sigma_time
+    Sigma_doppler = numerator1/denominator
+    return Sigma_doppler
 #def sigma_doppler_frequency_square():
 
 

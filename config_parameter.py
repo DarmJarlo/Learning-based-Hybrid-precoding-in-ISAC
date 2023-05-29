@@ -12,8 +12,8 @@ Initial_location_max = 100
 Radar_measure_slot = 0.02 #s
 length_echo = 0.005  # length of echo ms
 RSU_power = 1000
-rou_timedelay = 2e-6
-fading_coefficient = 1 + 1j
+
+fading_coefficient = 10 + 10j
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
 FurtherTrain = False
@@ -35,7 +35,7 @@ rf_size = 8
 antenna_size = 32
 receiver_antenna_size = 1
 sigma_k = 5
-sigma_z = 5
+sigma_z = 80
 
 
 #path loss parameters
@@ -53,8 +53,12 @@ pulse_duration = 10e-6  # pulse duration in seconds
 R_max = 200  # maximum range in meters
 Signal_noise_power = 0.1#noise for echo signal
 sigma_rk = Signal_noise_power
+rou_timedelay = 2e-6
+rou_dopplershift = 2e-6
 
 
-loss_mode = Upper_sum_rate   # three mode
-#loss_mode = lower_bound_crb
-#loss_mode = combined_loss
+
+
+loss_mode = "Upper_sum_rate"   # three mode
+#loss_mode = "lower_bound_crb"
+#loss_mode = "combined_loss"
