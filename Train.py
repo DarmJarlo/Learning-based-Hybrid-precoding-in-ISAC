@@ -56,7 +56,7 @@ if __name__ == '__main__':
     sum_rate_list = [] # the sum rate at all timepoints in this list
 
     @tf.function
-    def train_step(input,target_coordinates,real_distance_list,last_real_distance_list,step):
+    def train_step(input,target_coordinates,real_distance_list,last_real_distance_list,time):
         with tf.GradientTape() as tape:
             output = model(input)#dont forget here we are inputing a whole batch
             print('oooooooooooo',step,output)
@@ -87,6 +87,18 @@ if __name__ == '__main__':
                 CRB_d_list.append(CRB_d)
                 CRB_angle =loss.CRB_distance(index=v,real_distance,estimated_theta_list,precoding_matrix)
                 CRB_angle_list.append(CRB_angle)
+                sigma_time_delay[v, time] = loss.Sigma_time_delay_square(index=v,
+                                                                         distance_list=real_distance[:, time],
+                                                                         estimated_theta_list=real_theta[:, time], \
+                                                                         precoding_matrix=precoding_matrix)
+                sigma_doppler[v, time] = loss.Sigma_time_delay_square(index=v,\
+                                                                      distance_list = real_distance[:,time], \
+                                                                      estimated_theta_list = real_theta[:,time], \
+                                                                      precoding_matrix = precoding_matrix)
+                estimated_time_delay[v,time+1] = real_time_delay[v,time+1]+ np.random.normal(0, sigma_time_delay[v,time], 1)
+                estimated_doppler_frequency[v, time + 1] = real_doppler_frequency[v, time + 1] + np.random.normal(0, sigma_time_delay[v, time], 1)
+                # precoding matrix for this time is for the estimation_next time
+
             crb_d_sum_list.append(CRB_d_list)
             crb_angle_sum_list.append(CRB_angle_list)
             combined_loss = loss.loss_combined(c)
@@ -150,11 +162,12 @@ if __name__ == '__main__':
                 real_distance_list[vehicle, i] = math.sqrt((location[vehicle,i] - config_parameter.RSU_location[0])**2\
                                                                +(location_y[vehicle,i] - config_parameter.RSU_location[1])**2)
             real_location_x[vehicle]=location[vehicle][1:]
-        for vehicle in range(0,config_parameter.num_vehicle):
-            for time in range(0,config_parameter.one_iter_period/config_parameter.Radar_measure_slot):
-                sigma_time_delay[v, time] = loss.Sigma_time_delay_square(index=v,distance_list = real_distance[:, time],estimated_theta_list=real_theta[:,time],\
-                                                                         precoding_matrix=last_precoding_matrix[]
-                sigma_doppler[v, time] = loss.Sigma_time_delay_square(index=vdistance_list = real_distance[:, time],estimated_theta_list=
+        #for vehicle in range(0,config_parameter.num_vehicle):
+         #   for time in range(0,config_parameter.one_iter_period/config_parameter.Radar_measure_slot):
+          #      sigma_time_delay[v, time] = loss.Sigma_time_delay_square(index=v,distance_list = real_distance[:, time],estimated_theta_list=real_theta[:,time],\
+             #                                                            precoding_matrix=precoding_matrix)
+           #     sigma_doppler[v, time] = loss.Sigma_time_delay_square(index=vdistance_list = real_distance[:, time],estimated_theta_list=real_theta[:,time].\
+            #        precoding_matrix=precoding_matrix)
         print("location while start measuring",real_location_x)
 
 
@@ -171,13 +184,13 @@ if __name__ == '__main__':
         estimated_velocity = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
         estimated_theta = real_theta
         #real_distance = np.zeros(shape=(config_parameter.num_vehicle,config_parameter.one_iter_period/config_parameter.Radar_measure_slot))
-        sigma_time_delay[v, time] = loss.Sigma_time_delay_square(index=vdistance_list = real_distance[:, time],
+        #sigma_time_delay[v, time] = loss.Sigma_time_delay_square(index=vdistance_list = real_distance[:, time],
         for v in range(0,config_parameter.num_vehicle):
 
             for time in np.arange(0,config_parameter.one_iter_period/config_parameter.Radar_measure_slot):
                 #calculate the real distance between rsu and vehicles,initialize speed for every timeslot
                 real_distances[v][time]=math.sqrt((config_parameter.RSU_location[1]) ** 2 + (location[v][time]-config_parameter.RSU_location[0]) ** 2)
-                real_time_delay[v,time] = 2 * real_distance[v,time] / config_parameter.c
+                real_time_delay[v,time] = 2 * real_distances[v,time] / config_parameter.c
 
                 estimated_time_delay[v,time] = real_time_delay[v,time] + np.random.normal(0, np.sqrt(config_parameter.Signal_noise_power))
         #
