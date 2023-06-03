@@ -77,8 +77,18 @@ def Output2PrecodingMatrix(Output):
     #theta_list = Output[-(config_parameter.num_vehicle):]
     print(Digital_Matrix)
     return Analog_Matrix,Digital_Matrix
-def tensor2PrecodingMatrix():
-    tf.py_function(loss_Sumrate,[real_distance,precoding_matrix,theta],tf.complex64)Output2PrecodingMatrix
+def calculate_CSI(distance,theta):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+    pathloss=Path_loss(distance)
+    gain = sqrt(antenna_size)
+    steering_vector = calculate_steer_vector_this(theta)
+    CSI=gain*pathloss*steering_vector
+    return CSI
 #calculate the steering vector of theta k,n as a np array
 def calculate_steer_vector(theta_list):
     if config_parameter.mode == "V2I":
@@ -94,7 +104,7 @@ def calculate_steer_vector(theta_list):
         for n1 in range(0, antenna_size):
             steering_vector[n1,v]=np.exp(-1j*pi * n1 * cos(theta))
 
-    return np.array(steering_vector)
+    return steering_vector
 
 def calculate_steer_vector_this(theta):
     if config_parameter.mode == "V2I":
@@ -136,7 +146,7 @@ def Echo2RSU(self, time_delay, doppler_frequncy, theta, time):
 "following are the utilities for the calculation of sum rate in communication part"
 def Path_loss(distance):
     print(distance)
-    pathloss = config_parameter.alpha * ((distance / config_parameter.d0) ** config_parameter.path_loss_exponent)
+    pathloss = sqrt(config_parameter.alpha * ((distance / config_parameter.d0) ** config_parameter.path_loss_exponent))
     print("pathloss",pathloss)
     return pathloss
 def Precoding_matrix_combine(Analog_matrix,Digital_matrix):

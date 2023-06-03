@@ -241,15 +241,21 @@ for i in range(0, config_parameter.iters):
 
 
     #set input as (1,5,11,3) containing angle distance and velocity
+    CSI_whole = np.zeros(shape=(totalnum_vehicle, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)+1),dtype=complex)
 
-    #based on the 1-10 data create a precoding matrix to make a precoding matrix and calculate the precoding matrix for 11.
-    input_whole = np.zeros(shape=(int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)+1,totalnum_vehicle,3))
-    input_whole[:-1,:,2]=np.tile(np.transpose(speed_own_dictionary), (1,totalnum_vehicle))
-    print("obsever velocity",input_whole[:,:,2])
-    input_whole[:,:,1]=np.transpose(real_distance)
-    print("real distance",input_whole[:,:,1])
-    input_whole[:,:,0]=np.transpose(real_theta)
-    print("real angle", input_whole[:, :, 0])
+    for v in range(0,totalnum_vehicle):
+        for t in range(0,int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)+1):
+            CSI_whole[v,t]=loss.calculate_CSI(real_distance[v,t],real_theta[v,t])#based on the 1-10 data create a precoding matrix to make a precoding matrix and calculate the precoding matrix for 11.
+    input_whole = np.zeros(shape=(int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)+1,totalnum_vehicle,2))
+    input_whole[:,:,0] = np.real(CSI_whole)
+    input_whole[:,:,1] = np.imag(CSI_whole)
+    #input_whole[:, :, 0] = np.transpose(real_theta)
+    #input_whole[:-1,:,2]=np.tile(np.transpose(speed_own_dictionary), (1,totalnum_vehicle))
+    #print("obsever velocity",input_whole[:,:,2])
+    #input_whole[:,:,1]=np.transpose(real_distance)
+    #print("real distance",input_whole[:,:,1])
+    #input_whole[:,:,0]=np.transpose(real_theta)
+    #print("real angle", input_whole[:, :, 0])
 
     for epo in range(int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)+1-9):
 
