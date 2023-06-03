@@ -8,6 +8,7 @@ import config_parameter
 from scipy.signal import correlate
 from scipy.optimize import fmin_bfgs
 from scipy import signal
+import tensorflow as tf
 
 Nt=8
 Nr=8
@@ -41,49 +42,74 @@ def Output2PrecodingMatrix_with_theta(Output):
     theta_list = Output[-(config_parameter.num_vehicle):]
     return Analog_Matrix,Digital_Matrix,theta_list
 def Output2PrecodingMatrix(Output):
-    Analog_Matrix = np.zeros((config_parameter.antenna_size,config_parameter.rf_size))
-    Digital_real_Matrix = np.zeros((config_parameter.rf_size, config_parameter.num_vehicle))
-    Digital_im_Matrix = np.zeros((config_parameter.rf_size, config_parameter.num_vehicle))
-    Digital_Matrix = np.zeros((config_parameter.rf_size, config_parameter.num_vehicle))
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
 
-    Analog_part = cmath.exp(index for index in Output[0:config_parameter.antenna_size*config_parameter.rf_size-1])
-    Analog_Matrix_org = np.reshape(Analog_part,(config_parameter.antenna_size,config_parameter.rf_size))
-    for i in range(0,config_parameter.antenna_size):
+    Analog_Matrix = np.zeros((antenna_size,config_parameter.rf_size),dtype=complex)
+    Digital_real_Matrix = np.zeros((config_parameter.rf_size, num_vehicle))
+    Digital_im_Matrix = np.zeros((config_parameter.rf_size, num_vehicle))
+    Digital_Matrix = np.zeros((config_parameter.rf_size, num_vehicle),dtype=complex)
+    print(Output.shape)
+    Analog_part = Output[:,0:antenna_size*config_parameter.rf_size]
+    print(Output[0:antenna_size*config_parameter.rf_size])
+    #Analog_part = cmath.exp(Analog_part)
+    Analog_Matrix_org = np.reshape(Analog_part,(antenna_size,config_parameter.rf_size))
+    print("analog matrix",Analog_Matrix_org)
+    for i in range(0,antenna_size):
         for r in range(0,config_parameter.rf_size):
-            Analog_Matrix[i][j]=np.exp(1j*Analog_Matrix_org[i][r])
-    adder = config_parameter.antenna_size*config_parameter.rf_size
-    Digital_real = Output[adder : adder +config_parameter.rf_size*config_parameter.num_vehicle-1]
-    adder2 = adder +config_parameter.rf_size*config_parameter.num_vehicle
-    Digital_imginary=Output[adder2:]
-    Digital_real_Matrix_org = np.reshape(Digital_real,(config_parameter.rf_size,config_parameter.num_vehicle))
-    Digital_im_Matrix_org = np.reshape(Digital_imginary,(config_parameter.rf_size,config_parameter.num_vehicle))
+            Analog_Matrix[i][r]=np.exp(1j*Analog_Matrix_org[i][r])
+    print("analog matrix", Analog_Matrix)
+    adder = antenna_size*config_parameter.rf_size
+    Digital_real = Output[:,adder : adder +config_parameter.rf_size*num_vehicle]
+    adder2 = adder +config_parameter.rf_size*num_vehicle
+    Digital_imginary=Output[:,adder2:]
+    Digital_real_Matrix_org = np.reshape(Digital_real,(config_parameter.rf_size,num_vehicle))
+    Digital_im_Matrix_org = np.reshape(Digital_imginary,(config_parameter.rf_size,num_vehicle))
     for k in range(0,config_parameter.rf_size):
-        for m in range(0,config_parameter.num_vehicle):
+        for m in range(0,num_vehicle):
             #Digital_real_Matrix[k][m] = Digital_real_Matrix_org[k][m]
             #Digital_im_Matrix[k][m] = 1j * Digital_im_Matrix_org[k][m]
-            Digital_Matrix[k][m] = complex(Digital_real_Matrix_org[k][m],Digital_im_Matrix_org[k][m])
+            Digital_Matrix[k][m] = Digital_real_Matrix_org[k][m]+1j*Digital_im_Matrix_org[k][m]
     #theta_list = Output[-(config_parameter.num_vehicle):]
+    print(Digital_Matrix)
     return Analog_Matrix,Digital_Matrix
-
+def tensor2PrecodingMatrix():
+    tf.py_function(loss_Sumrate,[real_distance,precoding_matrix,theta],tf.complex64)Output2PrecodingMatrix
 #calculate the steering vector of theta k,n as a np array
 def calculate_steer_vector(theta_list):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
     #this theta here is a estimated value
-    steering_vector = []
-    for v in range(config_parameter.num_vehicle):
-        steering_vector_this = []
-        for n1 in range(0, config_parameter.antenna_size):
-            steering_vector_this = steering_vector_this.append(np.exp(complex(-pi * n1 * cos(theta_list[v]))))
-        steering_vector.append(steering_vector_this)
-    return np.array(steering_vector).T
+    steering_vector=np.zeros(shape=(antenna_size,num_vehicle),dtype=complex)
+    for v in range(num_vehicle):
+
+        for n1 in range(0, antenna_size):
+            steering_vector[n1,v]=np.exp(-1j*pi * n1 * cos(theta))
+
+    return np.array(steering_vector)
 
 def calculate_steer_vector_this(theta):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
     #this theta here is a estimated value
-    steering_vector_this = []
+    steering_vector_this = np.zeros(shape=(antenna_size,1),dtype=complex)
 
-    for n1 in range(0, config_parameter.antenna_size):
-        steering_vector_this = steering_vector_this.append(np.exp(complex(-pi * n1 * cos(theta))))
+    for n1 in range(0, antenna_size):
+        steering_vector_this[n1,0]=np.exp(-1j*pi * n1 * cos(theta))
 
-    return np.array(steering_vector_this).T
+    return np.array(steering_vector_this)
 
 '''
 def Echo2RSU(self, time_delay, doppler_frequncy, theta, time):
@@ -109,7 +135,9 @@ def Echo2RSU(self, time_delay, doppler_frequncy, theta, time):
 
 "following are the utilities for the calculation of sum rate in communication part"
 def Path_loss(distance):
+    print(distance)
     pathloss = config_parameter.alpha * ((distance / config_parameter.d0) ** config_parameter.path_loss_exponent)
+    print("pathloss",pathloss)
     return pathloss
 def Precoding_matrix_combine(Analog_matrix,Digital_matrix):
     #think here analog_matrix is 64x8, digital_matrix is 8x4
@@ -118,7 +146,13 @@ def Precoding_matrix_combine(Analog_matrix,Digital_matrix):
 
 
 def This_signal(index,pathloss,transmit_steering,combined_precoding_matrix):
-    gain = sqrt(config_parameter.antenna_size)
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+    gain = sqrt(antenna_size)
     transmit_steering_hermite = transmit_steering.T.conjugate()
     #conjugated and transposed steering vector
     channel_vector = gain*pathloss*transmit_steering_hermite # remember this transmit_steering is already a transpose one
@@ -129,13 +163,20 @@ def This_signal(index,pathloss,transmit_steering,combined_precoding_matrix):
 #This_signal_list is the list containing all the signals ratio
 # function Sum_signal computes the Sum of signal except this signal
 def Sum_signal(signal_index,This_signal_list):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
     signal_sum = 0
-    for i in range(0,config_parameter.num_vehicle):
+    for i in range(0,num_vehicle):
         if i !=signal_index:
             signal_sum += This_signal_list[i]**2
     return signal_sum
 #def combine_this_signal_list(This_signal)
-
+def tensor_Sum_rate(real_distance,precoding_matrix,theta):
+    return tf.py_function(loss_Sumrate,[real_distance,precoding_matrix,theta],tf.complex64)
 #calculate the sinr of this link
 def calculate_link_sinr(this_signal,signal_sum):
     #equation 16
@@ -161,17 +202,23 @@ def calculate_link_sinr(this_signal,signal_sum):
 
 
 
-def loss_Sumrate(real_distance,precoding_matrix,estimated_theta):
+def loss_Sumrate(real_distance,precoding_matrix,theta):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
     pathloss = []
     transmit_steering = []
     this_link = []
-    for index in range(0,config_parameter.num_vehicle):
+    for index in range(0,num_vehicle):
         pathloss.append(Path_loss(real_distance[index]))
-        transmit_steering.append(calculate_steer_vector_this(config_parameter.antenna_size,estimated_theta[index]))
+        transmit_steering.append(calculate_steer_vector_this(theta[index]))
         this_link.append(This_signal(index,pathloss[index],transmit_steering[index],precoding_matrix))
     Sum_rate = 0
     sinr_list = []
-    for index in range(0,config_parameter.num_vehicle):
+    for index in range(0,num_vehicle):
         signal_sum = Sum_signal(index,this_link)
         sinr_list.append(calculate_link_sinr(this_link[index],signal_sum))
         Sum_rate += np.log2(1+sinr_list[index])
@@ -181,39 +228,57 @@ def loss_Sumrate(real_distance,precoding_matrix,estimated_theta):
 
 "following is the utilities used for calculation of CRB"
 def Sigma_time_delay_square(index,distance_list,estimated_theta_list,precoding_matrix):
-    Antenna_Gain_square = config_parameter.antenna_size*config_parameter.receiver_antenna_size
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
+
+    Antenna_Gain_square = antenna_size*config_parameter.receiver_antenna_size
     numerator1 = 0
-    for k in range(0,config_parameter.num_vehicle):
+    for k in range(0,num_vehicle):
         if k !=index:
             beta_that = Reflection_coefficient(distance_list[k])
             transmit_steering_that = calculate_steer_vector_this(estimated_theta_list[k])
             transmit_steering_that_Hermite = transmit_steering_that.T.conjugate()
-            numerator1 +=abs(beta_that)**2* (abs(transmit_steering_that_Hermite)*precoding_matrix[k])**2
+            print(transmit_steering_that_Hermite.shape)
+            print(precoding_matrix.shape)
+            numerator1 +=abs(beta_that)**2* (abs(np.dot(transmit_steering_that_Hermite,precoding_matrix[:,k])**2))
 
     numerator1 = (config_parameter.rou_timedelay ** 2) * (numerator1+config_parameter.sigma_z)
     beta_this= Reflection_coefficient(distance_list[index])
     transmit_steering_this = calculate_steer_vector_this(estimated_theta_list[index])
     transmit_steering_this_Hermite = transmit_steering_this.T.conjugate()
-    denominator=(abs(beta_this)**2)*(abs(transmit_steering_this_Hermite*\
-        precoding_matrix[index,:])**2)
+    denominator=(abs(beta_this)**2)*(abs(np.dot(transmit_steering_this_Hermite,\
+        precoding_matrix[:,index]))**2)
     Sigma_time = numerator1/denominator
+    print(Sigma_time)
     return Sigma_time
 def Sigma_doppler_square(index,distance_list,estimated_theta_list,precoding_matrix):
-    Antenna_Gain_square = config_parameter.antenna_size*config_parameter.receiver_antenna_size
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
+    Antenna_Gain_square = antenna_size*config_parameter.receiver_antenna_size
     #numerator1 = (config_parameter.rou_timedelay**2)*()
     numerator1 = 0
-    for k in range(0,config_parameter.num_vehicle):
+    for k in range(0,num_vehicle):
         if k !=index:
             beta_that = Reflection_coefficient(distance_list[k])
-            transmit_steering_that = calculate_steer_vector(config_parameter.antenna_size,estimated_theta_list[k])
+            transmit_steering_that = calculate_steer_vector(antenna_size,estimated_theta_list[k])
             transmit_steering_that_Hermite = transmit_steering_that.T.conjugate()
-            numerator1 +=abs(beta_that)**2* (abs(transmit_steering_that_Hermite)*precoding_matrix[k])**2
+            numerator1 +=abs(beta_that)**2* (abs(transmit_steering_that_Hermite)*precoding_matrix[:,k])**2
     numerator1 = (config_parameter.rou_dopplershift**2)* (numerator1+config_parameter.sigma_z)
     beta_this= Reflection_coefficient(distance_list[index])
-    transmit_steering_this = calculate_steer_vector(config_parameter.antenna_size,estimated_theta_list[index])
+    transmit_steering_this = calculate_steer_vector(antenna_size,estimated_theta_list[index])
     transmit_steering_this_Hermite = transmit_steering_this.T.conjugate()
     denominator=(abs(beta_this)**2)*(abs(transmit_steering_this_Hermite*\
-        precoding_matrix[index,:])**2)
+        precoding_matrix[:,index])**2)
     Sigma_doppler = numerator1/denominator
     return Sigma_doppler
 #def sigma_doppler_frequency_square():
@@ -247,6 +312,18 @@ def Chirp_signal_new():
     for v in config_parameter.num_vehicle:
         chirp.append(chirp_signal)
     return chirp
+def Real_doppler_shift():
+    velocity_direction_norm = np.linalg.norm(target_velocity)
+    target_velocity_between = np.dot(target_velocity,
+                                     (target_coordinates - config_parameter.RSU_location)) * velocity_direction_norm / (
+                                          real_distance * velocity_direction_norm)
+    observer_velocity = (0,0)
+    observer_velocity_between = np.dot(np.dot(observer_velocity,
+                                     (target_coordinates - config_parameter.RSU_location)) * velocity_direction_norm / (
+                                          real_distance * velocity_direction_norm))
+    f_observed =  (1 + (target_velocity_between / config_parameter.c)) * config_parameter.Frequency_original
+    real_doppler_shift = f_observed-config_parameter.Frequency_original
+    return real_doppler_shift
 def Received_Signal(real_distance,index,target_velocity,target_coordinates,precoding_matrix):
     #input target_velocity as a coordinate
     real_time_delay = 2 * real_distance / config_parameter.c
@@ -313,6 +390,7 @@ def Matched_filter(reference_signal,received_signal,estimated_distance_last):
     #estimated_velocity = (sqrt(estimated_distance**2 - config_parameter.RSU_location[1]**2) - last_location_x)/config_parameter.Radar_measure_slot
     #movement_norm = np.linalg.norm()
     estimated_velocity_between_norm = (estimated_distance-estimated_distance_last)/config_parameter.Radar_measure_slot
+
     #attention this velocity is about velocity on x-axis
 
     doppler_frequency_shift = 2 * estimated_velocity_between_norm * config_parameter.Frequency_original / 3e8
@@ -325,12 +403,22 @@ def Reflection_coefficient(distance_this_vehicle):
     beta = config_parameter.fading_coefficient/(2*distance_this_vehicle)
     return beta
 def Echo_partial_Theta(beta,combined_precoding_matrix,vehicle_index,matched_filter_gain,theta_this):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
     sin_theta =sin(theta_this)
+    if sin_theta == 0:
+        sin_theta = 0.01
     partial = 0
-    for nt in range(2,config_parameter.antenna_size):
-        partial += -sqrt(config_parameter.antenna_size)*beta*matched_filter_gain*\
-                   combined_precoding_matrix*combined_precoding_matrix[vehicle_index][nt]\
+    for nt in range(2,antenna_size):
+        partial += -sqrt(antenna_size)*beta*matched_filter_gain*\
+                  combined_precoding_matrix[nt][vehicle_index]\
                    *(cmath.exp(1j*(nt-1)*cos(theta_this)))*1j*pi*(nt-1)*sin_theta
+
     return partial
 #def matched_filter_gain(estimated_dopplershift,real_dopplershift,estimated_timedelay,real_timedelay):
  #   def integrand(estimated_dopplershift,real_dopplershift,estimated_timedelay,real_timedelay):
@@ -352,35 +440,43 @@ def Matched_filtering_gain():
 
 
 
-def CRB_distance(index,distance_list,estimated_theta_list,precoding_matrix):
-    Sigma_timedelay_2 = sigma_time_delay_square(index,distance_list,estimated_theta_list,precoding_matrix)
+def CRB_distance(Sigma_time_delay_2):
+    #Sigma_timedelay_2 = sigma_time_delay_square(index,distance_list,estimated_theta_list,precoding_matrix)
     c = config_parameter.c
-    crlb_d_inv =(1/Sigma_timedelay_2)*((2/c)**2)
+    crlb_d_inv =(1/Sigma_time_delay_2)*((2/c)**2)
     #CRB_d = np.linalg.inv(crlb_d_inv)
     CRB_d = 1/ crlb_d_inv
-    return CRB_d
+    return abs(CRB_d)
 
-def CRB_angle(index,distance_list,precoding_matrix.estimated_theta_list):
+def CRB_angle(index,distance_list,precoding_matrix,estimated_theta_list):
     beta = Reflection_coefficient(distance_list[index])
     matched_filter_gain = Matched_filtering_gain()
     partial = Echo_partial_Theta(beta,precoding_matrix,index,matched_filter_gain,estimated_theta_list[index])
     partial_hermite = partial.T.conjugate()
     sigma_rk_inv = 1/config_parameter.sigma_rk
 
-    CRB_theta = np.linalg.inv(sigma_rk_inv*partial*partial_hermite)
-    return CRB_theta
+    CRB_theta = 1/(sigma_rk_inv*partial*partial_hermite)
+    return abs(CRB_theta)
 
 def CRB_sum(CRB_list):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
     CRB_sum = 0
-    for index in range(0,config_parameter.num_vehicle):
+    print('------',CRB_list)
+    for index in range(0,num_vehicle):
         CRB_sum += CRB_list[index]
-    return CRB_sum/config_parameter.num_vehicle
+    return abs(CRB_sum)/num_vehicle
 "following is the MUSIC algorithm to estimate the angle"
 "following is the loss function after transforming to a multitask learning"
 #def uncertainty_weighting(real_distance,precoding_matrix,estimated_theta):
 
 
-def loss_combined(CRB_d_list,CRB_thet_list,sumrate_list):
+def loss_combined(CRB_d_list,CRB_thet_list,sumrate_inv_list,CRB_d_this_sum,CRB_thet_this_sum,sumrate_inv_this):
 
     #var_sumrate = np.var(loss_Sumrate(real_distance,precoding_matrix,estimated_theta))
     #CRB_d_list = []
@@ -388,21 +484,25 @@ def loss_combined(CRB_d_list,CRB_thet_list,sumrate_list):
     #Sumrate_list
 
 
-    var_CRB_distance = np.var(CRB_sum(CRB_d_list)) #CRB_d_list is all the previous timeslots' CRB_d
-    var_CRB_angle = np.var(CRB_sum(CRB_thet_list))
-    CRB_combined = CRB_sum(CRB_d_list)/2*var_CRB_angle + CRB_sum(CRB_thet_list)/2*var_CRB_distance+\
+    var_CRB_distance = np.var(CRB_d_list) #CRB_d_list is all the previous timeslots' CRB_d
+    var_CRB_angle = np.var(CRB_thet_list)
+    CRB_combined = CRB_thet_this_sum/2*var_CRB_angle + CRB_d_this_sum/2*var_CRB_distance+\
         np.log(var_CRB_distance*var_CRB_angle)
     var_CRB_combined = np.var(CRB_combined)
 
-    var_sumrate = np.var(1/sumrate_list)
+    var_sumrate = np.var(sumrate_inv_list)
 
 
 
-    final_loss = 1/(sumrate_list*2*var_sumrate) + CRB_combined/(2*var_CRB_combined) + np.log(var_CRB_combined*var_sumrate)
+    final_loss = sumrate_inv_this/(2*var_sumrate) + CRB_combined/(2*var_CRB_combined) + np.log(var_CRB_combined*var_sumrate)
 
     return final_loss
 
-
+def loss_CRB_combined(CRB_d_list,CRB_thet_list,CRB_d_this_sum,CRB_thet_this_sum):
+    var_CRB_distance = np.var(CRB_d_list)  # CRB_d_list is all the previous timeslots' CRB_d
+    var_CRB_angle = np.var(CRB_thet_list)
+    return   CRB_thet_this_sum/2*var_CRB_angle + CRB_d_this_sum/2*var_CRB_distance+\
+        np.log(var_CRB_distance*var_CRB_angle)
 "following is the MUSIC algorithm to estimate the angle. But sofar I assume everytime the \
 estimated angle is equivalent to the real angle"
 def pseudospectrum(echo):
