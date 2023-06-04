@@ -25,7 +25,7 @@ def load_model():
 
     model = DL_method_NN()
     model.build(input_shape=(None, int(config_parameter.train_data_period/config_parameter.Radar_measure_slot), \
-                             config_parameter.num_vehicle,2))
+                             config_parameter.num_vehicle,16))
     model.summary()
     if config_parameter.FurtherTrain ==True:
         model = tf.saved_model.load('Keras_models/new_model')

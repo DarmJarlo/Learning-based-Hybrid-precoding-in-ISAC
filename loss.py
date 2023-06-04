@@ -77,6 +77,35 @@ def Output2PrecodingMatrix(Output):
     #theta_list = Output[-(config_parameter.num_vehicle):]
     print(Digital_Matrix)
     return Analog_Matrix,Digital_Matrix
+
+def tf_Output2PrecodingMatrix(Output):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+    Analog_Matrix = tf.zeros((antenna_size, config_parameter.rf_size), dtype=tf.complex128)
+    Digital_real_Matrix = tf.zeros((config_parameter.rf_size, num_vehicle))
+    Digital_im_Matrix = tf.zeros((config_parameter.rf_size, num_vehicle))
+    Digital_Matrix = tf.zeros((config_parameter.rf_size, num_vehicle), dtype=tf.complex128)
+    Analog_part = Output[:, 0:antenna_size * config_parameter.rf_size]
+    Analog_part_reshaped = tf.reshape(Analog_part, (antenna_size, config_parameter.rf_size))
+    Analog_Matrix_real = tf.cos(Analog_part_reshaped)
+    Analog_Matrix_imaginary = tf.sin(Analog_part_reshaped)
+    Analog_Matrix = tf.complex(Analog_Matrix_real, Analog_Matrix_imaginary)
+
+    adder = antenna_size * config_parameter.rf_size
+    Digital_real = Output[:, adder: adder + config_parameter.rf_size * num_vehicle]
+    Digital_imginary = Output[:, adder + config_parameter.rf_size * num_vehicle:]
+
+    Digital_real_reshaped = tf.reshape(Digital_real, (config_parameter.rf_size, num_vehicle))
+    Digital_imginary_reshaped = tf.reshape(Digital_imginary, (config_parameter.rf_size, num_vehicle))
+
+    Digital_Matrix = tf.complex(Digital_real_reshaped, Digital_imginary_reshaped)
+
+    print(Digital_Matrix)
+    return Analog_Matrix, Digital_Matrix
 def calculate_CSI(distance,theta):
     if config_parameter.mode == "V2I":
         antenna_size = config_parameter.antenna_size
@@ -84,10 +113,12 @@ def calculate_CSI(distance,theta):
     elif config_parameter.mode == "V2V":
         antenna_size = config_parameter.vehicle_antenna_size
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+    print("false distance",distance)
     pathloss=Path_loss(distance)
     gain = sqrt(antenna_size)
     steering_vector = calculate_steer_vector_this(theta)
-    CSI=gain*pathloss*steering_vector
+    steering_hermite = steering_vector.T.conjugate()
+    CSI=gain*pathloss*steering_hermite
     return CSI
 #calculate the steering vector of theta k,n as a np array
 def calculate_steer_vector(theta_list):
@@ -144,17 +175,32 @@ def Echo2RSU(self, time_delay, doppler_frequncy, theta, time):
 '''
 
 "following are the utilities for the calculation of sum rate in communication part"
+
+"""PL = PL0 + 10 * n * log10(d/d0)
+
+Where:
+
+PL is the path loss in decibels (dB)
+PL0 is the reference path loss at a reference distance d0
+n is the path loss exponent
+d is the distance between the transmitter and receiver
+path_loss = reference_path_loss + 10 * path_loss_exponent * np.log10(distance / reference_distance)
+"""
 def Path_loss(distance):
     print(distance)
+    print(distance / config_parameter.d0)
+    print(config_parameter.alpha * ((distance / config_parameter.d0) ** config_parameter.path_loss_exponent))
     pathloss = sqrt(config_parameter.alpha * ((distance / config_parameter.d0) ** config_parameter.path_loss_exponent))
     print("pathloss",pathloss)
     return pathloss
 def Precoding_matrix_combine(Analog_matrix,Digital_matrix):
     #think here analog_matrix is 64x8, digital_matrix is 8x4
     return np.dot(Analog_matrix,Digital_matrix)
+def tf_Precoding_matrix_combine(Analog_matrix,Digital_matrix):
+    #think here analog_matrix is 64x8, digital_matrix is 8x4
+    return tf.matmul(Analog_matrix, Digital_matrix)
 
-
-
+'''
 def This_signal(index,pathloss,transmit_steering,combined_precoding_matrix):
     if config_parameter.mode == "V2I":
         antenna_size = config_parameter.antenna_size
@@ -184,14 +230,51 @@ def Sum_signal(signal_index,This_signal_list):
         if i !=signal_index:
             signal_sum += This_signal_list[i]**2
     return signal_sum
+    '''
 #def combine_this_signal_list(This_signal)
-def tensor_Sum_rate(real_distance,precoding_matrix,theta):
-    return tf.py_function(loss_Sumrate,[real_distance,precoding_matrix,theta],tf.complex64)
+#def tensor_Sum_rate(CSI,precoding_matrix):
+ #   return tf.py_function(tf_loss_sumrate,[CSI,precoding_matrix],tf.complex64)
+def tf_loss_sumrate1(CSI,precoding_matrix):
+    CSI = tf.cast(CSI, dtype=tf.complex64)
+    return tf.reduce_sum(tf.square(tf.abs(tf.matmul(CSI, precoding_matrix))))
+
+def tf_loss_sumrate(CSI,precoding_matrix):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+    sinr = tf.zeros(shape=(1,num_vehicle))
+    sumrate = 0
+    CSI = tf.cast(CSI, dtype=tf.complex64)
+    for v in range(0,num_vehicle):
+        sum_other = 0
+        CSI_v = tf.expand_dims(CSI[v], axis=0)
+
+
+        precoding_matrix_v = tf.expand_dims(precoding_matrix[:,v], axis=1)
+
+        this_sinr =tf.square(tf.abs(tf.matmul(CSI_v,precoding_matrix_v)))
+        for i in range(0,num_vehicle):
+            if v!=i:
+                CSI_i = tf.expand_dims(CSI[i], axis=0)
+
+                precoding_matrix_i= tf.expand_dims(precoding_matrix[:, i], axis=1)
+                sum_other += tf.square(tf.abs(tf.matmul(CSI_i,precoding_matrix_i)))
+        sum_other += config_parameter.sigma_k
+        sinr = tf.concat([sinr[:, :v], this_sinr / sum_other, sinr[:, v + 1:]], axis=1)
+
+        sumrate += tf.math.log(1.0 + sinr[:, v])/tf.math.log(2.0)
+        #sinr[:,v]=this_sinr/sum_other
+        #sumrate += np.log2(1+sinr[:,v])
+    return sumrate
+
 #calculate the sinr of this link
 def calculate_link_sinr(this_signal,signal_sum):
     #equation 16
     numerator = this_signal**2
-    denominator = signal_sum + config_parameter.sigma_k**2
+    denominator = signal_sum + config_parameter.sigma_k
     sinr = numerator/denominator
     return sinr
 

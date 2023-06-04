@@ -74,8 +74,8 @@ sigma_z = 80
 
 #path loss parameters
 d0 = 1
-alpha = -70 #path_loss alpha at reference distance d0 UNIT: dB
-path_loss_exponent = 2.55
+alpha = 70 #path_loss alpha at reference distance d0 UNIT: dB
+path_loss_exponent = -2.55
 
 
 #chirp signal parameters
