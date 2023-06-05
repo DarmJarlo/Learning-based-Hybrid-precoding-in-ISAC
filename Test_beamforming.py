@@ -128,6 +128,7 @@ for epo in range(int(config_parameter.one_iter_period / config_parameter.Radar_m
     G = tf.math.sqrt(antenna_size_f)
     Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix(Output=output)
     precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
+    print("beamforming",precoding_matrix)
     steering_vector_this = tf.complex(input_single[0,-1,:,0:antenna_size], input_single[0,-1,:,antenna_size:2*antenna_size])
     steering_vector_this = tf.reshape(steering_vector_this, (antenna_size, num_vehicle))
     steering_hermite = tf.transpose(tf.math.conj(steering_vector_this))
