@@ -193,6 +193,14 @@ def Path_loss(distance):
     pathloss = sqrt(config_parameter.alpha * ((distance / config_parameter.d0) ** config_parameter.path_loss_exponent))
     print("pathloss",pathloss)
     return pathloss
+def tf_Path_loss(distance):
+    #distance as a list
+    alpha = tf.constant(config_parameter.alpha, dtype=tf.float32)
+    d0 = tf.constant(config_parameter.d0, dtype=tf.float32)
+    path_loss_exponent = tf.constant(config_parameter.path_loss_exponent, dtype=tf.float32)
+    distance_tensor = tf.convert_to_tensor(distance, dtype=tf.float32)
+    path_loss = tf.sqrt(alpha * ((distance / d0) ** path_loss_exponent))
+    return path_loss
 def Precoding_matrix_combine(Analog_matrix,Digital_matrix):
     #think here analog_matrix is 64x8, digital_matrix is 8x4
     return np.dot(Analog_matrix,Digital_matrix)

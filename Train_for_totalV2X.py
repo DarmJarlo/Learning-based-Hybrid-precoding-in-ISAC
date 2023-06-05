@@ -172,6 +172,10 @@ if __name__ == '__main__':
             # steering_vector = [loss.calculate_steer_vector(predict_theta_list[v] for v in range(config_parameter.num_vehicle)
             communication_loss = loss.tf_loss_sumrate(CSI, precoding_matrix)
 
+            #def get_loss_value(loss_tensor):
+             #   return np.array(loss_tensor)
+            #loss_value = tf.py_function(get_loss_value, [communication_loss], tf.float32)
+            print("loss_value",communication_loss)
             #communication_loss = loss.tensor_Sum_rate(CSI, precoding_matrix)
             '''
             #communication_loss= sum(input[0,-1,:,0])**2 + sum(input[0,-1,:,1])**2+input[0,-1,0,2]**2
@@ -231,7 +235,7 @@ if __name__ == '__main__':
 
         optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
 
-        return gradients
+        return communication_loss
 
     for i in range(0, config_parameter.iters):
 
@@ -355,11 +359,8 @@ if __name__ == '__main__':
             input_single = input_whole[epo:epo + 10, :, :]
             input_single = tf.convert_to_tensor(input_single)
             input_single=tf.expand_dims(input_single, axis=0)
-            train_step(input_single)
-            print("Epoch: {}/{}, step: {}, communication_loss: {:.5f}, ".format(i + 1,
-                                                                                    config_parameter.iters,
-                                                                                    epo,
-                                                                                     communication_loss.numpy(),
+            communication_loss,=train_step(input_single)
+            print("Epoch: {}/{}, step: {},loss: {}".format(i + 1,config_parameter.iters, epo,communication_loss.numpy()
                                                                                      ))
 
             #tf.saved_model.save(model, 'Keras_models/new_model')

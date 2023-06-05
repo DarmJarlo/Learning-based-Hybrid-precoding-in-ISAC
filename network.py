@@ -83,7 +83,7 @@ class ResNetLSTMModel(keras.Model):
 
         self.out = Dense(parameter_size,
                          activation='softmax')  # self.fc = tf.keras.layers.Dense(units=NUM_CLASSES, activation=tf.keras.activations.softmax)
-        self.build((1, 10, 3, 16))
+        self.build((1, 10, 3, 32))
     def call(self, inputs):
         #x = self.conv1(inputs)
         #x = self.bn1(inputs)

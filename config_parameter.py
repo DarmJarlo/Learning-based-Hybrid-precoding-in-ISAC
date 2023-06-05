@@ -4,7 +4,7 @@ mode = "V2V"
 #mode = "V2I"
 # some training parameters
 #imagine the vertical distance between RSU and highway is 20
-iters = 10
+iters = 100
 one_iter_period = 5 #s
 train_data_period = 1 #s
 num_vehicle =  5
