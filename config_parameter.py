@@ -4,7 +4,7 @@ mode = "V2V"
 #mode = "V2I"
 # some training parameters
 #imagine the vertical distance between RSU and highway is 20
-iters = 100
+iters = 500
 one_iter_period = 5 #s
 train_data_period = 1 #s
 num_vehicle =  5
@@ -49,6 +49,7 @@ fading_coefficient = 10 + 10j
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
 FurtherTrain = False
+
 #these are for the simulation test
 speed_low = 20
 speed_high = 22

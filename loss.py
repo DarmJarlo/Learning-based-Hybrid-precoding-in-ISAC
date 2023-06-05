@@ -150,7 +150,7 @@ def calculate_steer_vector_this(theta):
     for n1 in range(0, antenna_size):
         steering_vector_this[n1,0]=np.exp(-1j*pi * n1 * cos(theta))
 
-    return np.array(steering_vector_this)
+    return np.reshape(steering_vector_this,(8,))
 
 '''
 def Echo2RSU(self, time_delay, doppler_frequncy, theta, time):
@@ -198,8 +198,8 @@ def tf_Path_loss(distance):
     alpha = tf.constant(config_parameter.alpha, dtype=tf.float32)
     d0 = tf.constant(config_parameter.d0, dtype=tf.float32)
     path_loss_exponent = tf.constant(config_parameter.path_loss_exponent, dtype=tf.float32)
-    distance_tensor = tf.convert_to_tensor(distance, dtype=tf.float32)
-    path_loss = tf.sqrt(alpha * ((distance / d0) ** path_loss_exponent))
+    distance = tf.cast(distance, dtype=tf.float32)
+    path_loss = tf.sqrt(alpha * ((distance/ d0) ** path_loss_exponent))
     return path_loss
 def Precoding_matrix_combine(Analog_matrix,Digital_matrix):
     #think here analog_matrix is 64x8, digital_matrix is 8x4
@@ -242,9 +242,7 @@ def Sum_signal(signal_index,This_signal_list):
 #def combine_this_signal_list(This_signal)
 #def tensor_Sum_rate(CSI,precoding_matrix):
  #   return tf.py_function(tf_loss_sumrate,[CSI,precoding_matrix],tf.complex64)
-def tf_loss_sumrate1(CSI,precoding_matrix):
-    CSI = tf.cast(CSI, dtype=tf.complex64)
-    return tf.reduce_sum(tf.square(tf.abs(tf.matmul(CSI, precoding_matrix))))
+
 
 def tf_loss_sumrate(CSI,precoding_matrix):
     if config_parameter.mode == "V2I":
@@ -548,7 +546,12 @@ def CRB_distance(Sigma_time_delay_2):
     #CRB_d = np.linalg.inv(crlb_d_inv)
     CRB_d = 1/ crlb_d_inv
     return abs(CRB_d)
-
+def tf_CRB_distance(Sigma_time_delay_2):
+    c = tf.constant(config_parameter.c, dtype=tf.float32)
+    crlb_d_inv = tf.divide(1.0, Sigma_time_delay_2) * tf.square(tf.divide(2.0, c))
+    CRB_d = tf.divide(1.0, crlb_d_inv)
+    abs_CRB_d = tf.abs(CRB_d)
+    return abs_CRB_d
 def CRB_angle(index,distance_list,precoding_matrix,estimated_theta_list):
     beta = Reflection_coefficient(distance_list[index])
     matched_filter_gain = Matched_filtering_gain()
