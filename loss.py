@@ -77,6 +77,51 @@ def Output2PrecodingMatrix(Output):
     #theta_list = Output[-(config_parameter.num_vehicle):]
     print(Digital_Matrix)
     return Analog_Matrix,Digital_Matrix
+def generate_random_sample():
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
+    real_distance = np.zeros((num_vehicle,100))
+    theta = np.zeros((num_vehicle,100))
+    for i in range(num_vehicle):
+        real_distance[i]= np.random.uniform(50,200,100)
+        #generate 100 random number between -1 and 1
+        theta[i] = np.random.uniform(-1,1,100)
+        #replace the 0 in theta_list with 0.1
+        theta[i] = np.where(theta[i] == 0, 0.1, theta[i])
+    theta = theta * np.pi
+    steering_vector = np.zeros((100,num_vehicle,antenna_size,),dtype=complex)
+    for i in range(antenna_size):
+        for j in range(num_vehicle):
+            for m in range(len(theta[j])):
+                steering_vector[m][j][i] = np.exp(1j*np.pi*i*np.cos(theta[j][m]))
+
+    #generate the input for the neural network
+    input_whole = np.zeros(shape=(100, num_vehicle,
+               4 * antenna_size))
+    input_whole[:, :, 0:antenna_size] = np.real(steering_vector)
+    input_whole[:, :, antenna_size:2 * antenna_size] = np.imag(steering_vector)
+    for i in range(0, antenna_size):
+        input_whole[:, :, 2 * antenna_size + i] = theta.T
+        input_whole[:, :, 3 * antenna_size + i] = real_distance.T
+    with open('angleanddistance', "w") as file:
+        file.write("real_theta")
+        file.write(str(theta) + "\n")
+        file.write("real_distance")
+        file.write(str(real_distance) + "\n")
+    return input_whole
+
+
+
+
+
+
+
+
 
 def tf_Output2PrecodingMatrix(Output):
     if config_parameter.mode == "V2I":
@@ -133,7 +178,7 @@ def calculate_steer_vector(theta_list):
     for v in range(num_vehicle):
 
         for n1 in range(0, antenna_size):
-            steering_vector[n1,v]=np.exp(-1j*pi * n1 * cos(theta))
+            steering_vector[n1,v]=np.exp(-1j*pi * n1 * cos(theta_list[v]))
 
     return steering_vector
 
@@ -205,8 +250,18 @@ def Precoding_matrix_combine(Analog_matrix,Digital_matrix):
     #think here analog_matrix is 64x8, digital_matrix is 8x4
     return np.dot(Analog_matrix,Digital_matrix)
 def tf_Precoding_matrix_combine(Analog_matrix,Digital_matrix):
+    matrix=tf.matmul(Analog_matrix, Digital_matrix)
+
+    max_power = tf.constant(config_parameter.power,dtype=tf.float32)
+    magnitude_sum = tf.reduce_sum(tf.abs(matrix))
+    adjustment_factor = max_power / magnitude_sum
+    adjustment_factor = tf.cast(adjustment_factor,dtype=tf.complex64)
+    normalized_array = tf.multiply(matrix, adjustment_factor)
+
+    # TensorFlow 计算
+
     #think here analog_matrix is 64x8, digital_matrix is 8x4
-    return tf.matmul(Analog_matrix, Digital_matrix)
+    return normalized_array
 
 '''
 def This_signal(index,pathloss,transmit_steering,combined_precoding_matrix):
@@ -251,9 +306,10 @@ def tf_loss_sumrate(CSI,precoding_matrix):
     elif config_parameter.mode == "V2V":
         antenna_size = config_parameter.vehicle_antenna_size
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
-    sinr = tf.zeros(shape=(1,num_vehicle))
+    #sinr = tf.zeros(shape=(1,num_vehicle))
     sumrate = 0
     CSI = tf.cast(CSI, dtype=tf.complex64)
+    #values_array = tf.TensorArray(dtype=tf.complex64, size=3)
     for v in range(0,num_vehicle):
         sum_other = 0
         CSI_v = tf.expand_dims(CSI[v], axis=0)
@@ -264,17 +320,25 @@ def tf_loss_sumrate(CSI,precoding_matrix):
         this_sinr =tf.square(tf.abs(tf.matmul(CSI_v,precoding_matrix_v)))
         for i in range(0,num_vehicle):
             if v!=i:
-                CSI_i = tf.expand_dims(CSI[i], axis=0)
+                #CSI_i = tf.expand_dims(CSI[i], axis=0)
 
                 precoding_matrix_i= tf.expand_dims(precoding_matrix[:, i], axis=1)
-                sum_other += tf.square(tf.abs(tf.matmul(CSI_i,precoding_matrix_i)))
+                sum_other += tf.square(tf.abs(tf.matmul(CSI_v,precoding_matrix_i)))
         sum_other += config_parameter.sigma_k
-        sinr = tf.concat([sinr[:, :v], this_sinr / sum_other, sinr[:, v + 1:]], axis=1)
+        sinr = this_sinr/sum_other
+        #values_array = values_array.write(v, sinr)
+        sumrate += tf.math.log(1.0 + sinr) / tf.math.log(2.0)
+    #values_tensor = values_array.stack()
 
-        sumrate += tf.math.log(1.0 + sinr[:, v])/tf.math.log(2.0)
+        # 计算张量的和
+    #sum_value = tf.reduce_sum(values_tensor)
+    #res1 = tf.abs(sum_value/2 - values_tensor[0])
+    #res2 = tf.abs(sum_value/2 - values_tensor[1])
+    print("sinr",sinr)
+
         #sinr[:,v]=this_sinr/sum_other
         #sumrate += np.log2(1+sinr[:,v])
-    return sumrate
+    return sumrate[0]
 
 #calculate the sinr of this link
 def calculate_link_sinr(this_signal,signal_sum):

@@ -45,7 +45,49 @@ import config_parameter
 from tensorflow import keras
 from tensorflow.keras.layers import Conv1D, LSTM, Dense, BatchNormalization, Activation, Add,Reshape
 
+class ResNet(tf.keras.Model):
+    def __init__(self, layer_params=[1,1,1,1]):
+        super(ResNet, self).__init__()
+        self.conv1 = tf.keras.layers.Conv2D(filters=64,
+                                            kernel_size=(7, 7),
+                                            strides=2,
+                                            padding="same")
+        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.pool1 = tf.keras.layers.MaxPool2D(pool_size=(3, 3),
+                                               strides=2,
+                                               padding="same")
 
+        self.layer1 = make_bottleneck_layer(filter_num=64,
+                                            blocks=layer_params[0])
+        self.layer2 = make_bottleneck_layer(filter_num=128,
+                                            blocks=layer_params[1],
+                                            stride=2)
+        self.layer3 = make_bottleneck_layer(filter_num=256,
+                                            blocks=layer_params[2],
+                                            stride=2)
+        self.layer4 = make_bottleneck_layer(filter_num=512,
+                                            blocks=layer_params[3],
+                                            stride=2)
+
+        self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+        parameter_size = config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle
+
+        self.fc = tf.keras.layers.Dense(units=parameter_size, activation=tf.keras.activations.softmax)
+
+    def call(self, inputs, training=None, mask=None):
+        x = self.conv1(inputs)
+        x = self.bn1(x, training=training)
+        x = tf.nn.relu(x)
+        x = self.pool1(x)
+        x = self.layer1(x, training=training)
+        x = self.layer2(x, training=training)
+        x = self.layer3(x, training=training)
+        x = self.layer4(x, training=training)
+        x = self.avgpool(x)
+        output = self.fc(x)
+
+        return output
 
 from config_parameter import rf_size, antenna_size
 def make_bottleneck_layer(filter_num, blocks, stride=1):
@@ -72,18 +114,19 @@ class ResNetLSTMModel(keras.Model):
                                             kernel_size=(7, 7),
                                             strides=2,
                                             padding="same")
+
         self.bn1 = tf.keras.layers.BatchNormalization()
         self.flatten = Flatten()
-        self.dense_1 = Dense(1200, activation=act_func, kernel_initializer=init)
-        self.dense_2 = Dense(1200, activation=act_func, kernel_initializer=init)
-        self.dense_3 = Dense(600, activation=act_func, kernel_initializer=init)
-        self.dense_4 = Dense(600, activation=act_func, kernel_initializer=init)
+        self.dense_1 = Dense(200, activation=act_func, kernel_initializer=init)
+        self.dense_2 = Dense(200, activation=act_func, kernel_initializer=init)
+        self.dense_3 = Dense(100, activation=act_func, kernel_initializer=init)
+        self.dense_4 = Dense(100, activation=act_func, kernel_initializer=init)
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
         parameter_size = config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle
 
         self.out = Dense(parameter_size,
                          activation='softmax')  # self.fc = tf.keras.layers.Dense(units=NUM_CLASSES, activation=tf.keras.activations.softmax)
-        self.build((1, 10, 3, 32))
+        self.build((1, 1, num_vehicle, 32))
     def call(self, inputs):
         #x = self.conv1(inputs)
         #x = self.bn1(inputs)
@@ -172,6 +215,7 @@ class DL_method_NN_for_v2x_mod(keras.Model):
         super().__init__()
         act_func = "relu"
         init = keras.initializers.GlorotNormal() #Xavier initializer
+
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
         self.conv_layer1 = Conv2D(32, kernel_size=3, activation=act_func, input_shape=(1, 11, num_vehicle, 3), kernel_initializer=init, padding="same")
         self.bn1 = keras.layers.BatchNormalization()

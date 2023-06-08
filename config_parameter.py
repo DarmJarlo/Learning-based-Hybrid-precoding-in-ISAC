@@ -4,8 +4,8 @@ mode = "V2V"
 #mode = "V2I"
 # some training parameters
 #imagine the vertical distance between RSU and highway is 20
-iters = 500
-one_iter_period = 5 #s
+iters = 10
+one_iter_period = 30#s
 train_data_period = 1 #s
 num_vehicle =  5
 
@@ -15,10 +15,10 @@ num_vehicle =  5
 ################################################################3
 num_uppercar =1
 num_lowercar =1
-num_horizoncar = 1
+num_horizoncar = 0
 observer_car_init_loca = numpy.array([0,0])
-Initial_uppercar1_min = 20
-Initial_uppercar1_max = 30
+Initial_uppercar1_min = 50
+Initial_uppercar1_max = 60
 Initial_uppercar2_min = -20
 Initial_uppercar2_max = -30
 Initial_horizoncar1_min = 50
@@ -29,8 +29,8 @@ Initial_lowercar2_min = -40
 Initial_lowercar2_max = -50
 lowerspeed_low = -21
 lowerspeed_high = -20
-upperspeed_low = 25
-upperspeed_high = 26
+upperspeed_low = 20
+upperspeed_high = 21
 horizonspeed_low = 20
 horizonspeed_high = 21
 #########################################################
@@ -43,7 +43,7 @@ Initial_location_min = 50
 Initial_location_max = 100
 Radar_measure_slot = 0.1 #s
 length_echo = 0.005  # length of echo ms
-RSU_power = 1000
+power = 10
 
 fading_coefficient = 10 + 10j
 #calculation for doppler_frequency
@@ -52,7 +52,7 @@ FurtherTrain = False
 
 #these are for the simulation test
 speed_low = 20
-speed_high = 22
+speed_high = 21
 
 Initial_location_min = 50
 Initial_location_max = 100
@@ -65,12 +65,12 @@ train_initial_location_min = 30
 train_initial_location_max = 120
 
 #setup for metrics
-rf_size = 4
+rf_size = 1
 antenna_size = 32
 vehicle_antenna_size = 8
 receiver_antenna_size = 1
-sigma_k = 5
-sigma_z = 80
+sigma_k = 1
+sigma_z = 1
 
 
 #path loss parameters

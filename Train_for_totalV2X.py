@@ -32,6 +32,7 @@ def load_model():
 #-------observer---------car--
 #---------base station--------
 if __name__ == '__main__':
+    writer = tf.summary.create_file_writer('log.txt')
     if config_parameter.mode == "V2I":
         antenna_size = config_parameter.antenna_size
         num_vehicle = config_parameter.num_vehicle
@@ -176,6 +177,13 @@ if __name__ == '__main__':
              #   return np.array(loss_tensor)
             #loss_value = tf.py_function(get_loss_value, [communication_loss], tf.float32)
             print("loss_value",communication_loss)
+            with writer.as_default():
+
+                tf.summary.scalar("CSI", CSI, step=step)
+                tf.summary.scalar("G", G, step=step)
+                tf.summary.scalar("ANALOG", Analog_matrix, step=step)
+                tf.summary.scalar("Digital", Digital_matrix, step=step)
+                tf.summary.scalar("Pathloss", Pathloss, step=step)
             #communication_loss = loss.tensor_Sum_rate(CSI, precoding_matrix)
             '''
             #communication_loss= sum(input[0,-1,:,0])**2 + sum(input[0,-1,:,1])**2+input[0,-1,0,2]**2
