@@ -321,6 +321,7 @@ def tf_Path_loss(distance):
 def Precoding_matrix_combine(Analog_matrix,Digital_matrix):
     #think here analog_matrix is 64x8, digital_matrix is 8x4
     return np.dot(Analog_matrix,Digital_matrix)
+
 def tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix):
     max_power = tf.constant(config_parameter.power, dtype=tf.float32)
 
