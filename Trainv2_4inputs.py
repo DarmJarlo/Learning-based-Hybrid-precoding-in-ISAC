@@ -181,10 +181,10 @@ if __name__ == '__main__':
     # GPU settings
     gpus = tf.config.experimental.list_physical_devices('GPU')
     print(gpus)
-    if gpus:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.02)
+    #if gpus:
+     #   for gpu in gpus:
+      #      tf.config.experimental.set_memory_growth(gpu, True)
+    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.03)
     #optimizer_1 = tf.keras.optimizers.Adagrad(
      #   learning_rate=0.05,
       #  initial_accumulator_value=0.1,
@@ -219,10 +219,13 @@ if __name__ == '__main__':
 
 
             steering_vector_this = tf.complex(input[:,-1,:,0:antenna_size], input[:,-1,:,antenna_size:2*antenna_size])
+            #below is the real right steering vector
             steering_vector_this = tf.transpose(steering_vector_this, perm=[0, 2, 1])
             CSI = tf.complex(input[:,-1,:,2*antenna_size:3*antenna_size], input[:,-1,:,3*antenna_size:4*antenna_size])
-            zf_matrix = tf.complex(input[:,-1,:,2*antenna_size:3*antenna_size], input[:,-1,:,3*antenna_size:4*antenna_size])
-            #zf_sumrate = loss.tf_loss_sumrate(())
+            #CSi here shape is (BATCH,NUMVEHICLE,ANTENNAS)
+            zf_matrix = tf.complex(input[:,-1,:,4*antenna_size:5*antenna_size], input[:,-1,:,5*antenna_size:6*antenna_size])
+
+            zf_sumrate = loss.tf_loss_sumrate(CSI,tf.transpose(zf_matrix,perm=[0,2,1]))
             #sigma_doppler = loss.tf
             #steering_hermite = tf.transpose(tf.math.conj(steering_vector_this))
 
@@ -236,9 +239,14 @@ if __name__ == '__main__':
 
             # steering_vector = [loss.calculate_steer_vector(predict_theta_list[v] for v in range(config_parameter.num_vehicle)
             sum_rate_this = loss.tf_loss_sumrate(CSI, precoding_matrix)
-            sum_rate_this = tf.cast(sum_rate_this, tf.float64)
+            sum_rate_this = tf.cast(sum_rate_this, tf.float32)
+            zf_sumrate = tf.cast(zf_sumrate, tf.float32)
+            batch_size = tf.cast(batch_size, tf.float32)
+            #communication_loss = -sum_rate_this
             #communication_loss = -sum_rate_this+loss_MSE/(tf.stop_gradient(loss_MSE/(sum_rate_this)))
-            communication_loss = -sum_rate_this/batch_size
+            communication_loss = tf.reduce_sum(zf_sumrate-sum_rate_this)/batch_size
+            #Sigma_time_delay =
+            #CRB_d = loss.tf_CRB_distance()
             #communication_loss = communication_loss/input.shape[0]
             #crb_loss =
             #communication_loss = tf.math.divide(1.0, sum_rate_this)
@@ -281,11 +289,11 @@ if __name__ == '__main__':
         print("1")
 
         input_whole = loss.generate_random_sample()
-        for epo in range(1,100):
+        for epo in range(0,24):
 
             #print(input_whole.shape)
             communication_loss = 0
-            input_single = input_whole[epo:epo + config_parameter.batch_size, :, :]
+            input_single = input_whole[4*epo:4*epo + config_parameter.batch_size, :, :]
             input_single = tf.convert_to_tensor(input_single)
             input_single=tf.expand_dims(input_single, axis=0)
             input_single = tf.transpose(input_single,perm = [1,0,2,3])

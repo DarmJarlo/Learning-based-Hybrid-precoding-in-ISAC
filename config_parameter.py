@@ -4,17 +4,17 @@ mode = "V2V"
 #mode = "V2I"
 # some training parameters
 #imagine the vertical distance between RSU and highway is 20
-iters = 10
+iters = 100
 one_iter_period = 30#s
 train_data_period = 1 #s
 num_vehicle =  5
 batch_size = 4
-
+matched_filtering_gain =10
 
 #parameter for v2v
 ################################################################3
-num_uppercar =1
-num_lowercar =1
+num_uppercar =2
+num_lowercar =2
 num_horizoncar = 0
 observer_car_init_loca = numpy.array([0,0])
 Initial_uppercar1_min = 50
@@ -34,7 +34,7 @@ upperspeed_high = 21
 horizonspeed_low = 20
 horizonspeed_high = 21
 #########################################################
-batch_size = 10
+
 
 
 highway_length = 540
