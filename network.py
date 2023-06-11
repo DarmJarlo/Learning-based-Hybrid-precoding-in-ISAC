@@ -71,7 +71,10 @@ class ResNet(tf.keras.Model):
 
         self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
         parameter_size =2* config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle
+
+        #parameter_size = config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle #e64777e4300db20e83b8d9ae1526e548fcb0d836
 
         self.fc = tf.keras.layers.Dense(units=parameter_size, activation=tf.keras.activations.softmax)
 

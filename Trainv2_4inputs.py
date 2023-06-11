@@ -26,7 +26,9 @@ def load_model():
     model = ResNet()
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
+
     model.build(input_shape=(config_parameter.batch_size, 1, num_vehicle,80))
+
     model.summary()
     if config_parameter.FurtherTrain ==True:
         #model = tf.saved_model.load('Keras_models/new_model')
@@ -181,10 +183,12 @@ if __name__ == '__main__':
     # GPU settings
     gpus = tf.config.experimental.list_physical_devices('GPU')
     print(gpus)
+
     #if gpus:
      #   for gpu in gpus:
       #      tf.config.experimental.set_memory_growth(gpu, True)
     optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.01)
+
     #optimizer_1 = tf.keras.optimizers.Adagrad(
      #   learning_rate=0.05,
       #  initial_accumulator_value=0.1,
@@ -204,11 +208,14 @@ if __name__ == '__main__':
             elif config_parameter.mode == "V2V":
                 antenna_size = config_parameter.vehicle_antenna_size
                 num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
             output = model(input)
+
             num_vehicle_f = tf.cast(num_vehicle, tf.float32)
             antenna_size_f = tf.cast(antenna_size,tf.float32)
             # dont forget here we are inputing a whole batch
             G =tf.math.sqrt(antenna_size_f)
+
 
 
             shape = tf.shape(input)
@@ -237,8 +244,10 @@ if __name__ == '__main__':
             #loss_MSE = loss.tf_matrix_mse(zf_beamformer,precoding_matrix)
 
 
+
             # steering_vector = [loss.calculate_steer_vector(predict_theta_list[v] for v in range(config_parameter.num_vehicle)
             sum_rate_this = loss.tf_loss_sumrate(CSI, precoding_matrix)
+
             sum_rate_this = tf.cast(sum_rate_this, tf.float32)
             zf_sumrate = tf.cast(zf_sumrate, tf.float32)
             batch_size = tf.cast(batch_size, tf.float32)
@@ -248,6 +257,7 @@ if __name__ == '__main__':
             #Sigma_time_delay =
             #CRB_d = loss.tf_CRB_distance()
             #communication_loss = communication_loss/input.shape[0]
+
             #crb_loss =
             #communication_loss = tf.math.divide(1.0, sum_rate_this)
         if config_parameter.loss_mode == "Upper_sum_rate":
@@ -289,6 +299,7 @@ if __name__ == '__main__':
         print("1")
 
         input_whole = loss.generate_random_sample()
+
         for epo in range(0,45):
 
             #print(input_whole.shape)
@@ -297,6 +308,7 @@ if __name__ == '__main__':
             input_single = tf.convert_to_tensor(input_single)
             input_single=tf.expand_dims(input_single, axis=0)
             input_single = tf.transpose(input_single,perm = [1,0,2,3])
+
 
             #communication_loss,crb_dThis,crb_angelTHis=train_step(input_single)
             communication_loss,precoding_matrix,CSI,gradients = train_step(input_single)

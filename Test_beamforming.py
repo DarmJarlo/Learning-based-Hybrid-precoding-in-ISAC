@@ -29,6 +29,7 @@ if config_parameter.mode == "V2I":
 elif config_parameter.mode == "V2V":
     antenna_size = config_parameter.vehicle_antenna_size
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
 input_whole = loss.generate_random_sample()
 for epo in range(10):
     print(input_whole.shape)
@@ -36,6 +37,8 @@ for epo in range(10):
     input_single = tf.convert_to_tensor(input_single)
     input_single = tf.expand_dims(input_single, axis=0)
     input_single = tf.transpose(input_single,perm=[1,0,2,3])
+
+
     output = model(input_single)
     antenna_size_f = tf.cast(antenna_size, tf.float32)
     # dont forget here we are inputing a whole batch
@@ -45,8 +48,10 @@ for epo in range(10):
     print("Digital_matrix",Digital_matrix)
     precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
     print("beamforming",precoding_matrix)
+
     print("theta",input_single[0,:,:,8*antenna_size+1])
     print("real distance",input_single[0,:,:,9*antenna_size+1])
+
     '''
     steering_vector_this = tf.complex(input_single[0,-1,:,0:antenna_size], input_single[0,-1,:,antenna_size:2*antenna_size])
     steering_vector_this = tf.reshape(steering_vector_this, (antenna_size, num_vehicle))
@@ -66,10 +71,12 @@ for epo in range(10):
     idx = np.arange(antenna_size)
     angle_set = np.arange(1, 361) / 180 * np.pi
     Hset = np.exp(-1j * np.pi * idx.reshape(-1, 1) * np.cos(angle_set))
+
     zf_matrix = tf.complex(input_single[:,-1,:,4*antenna_size:5*antenna_size], input_single[:,-1,:,5*antenna_size:6*antenna_size])
     print(input_single[0,-1,:,0])
     print(Hset.shape)
     print("zf_matrix",zf_matrix.numpy())
+
     precoding_matrix = precoding_matrix.numpy()
     #x = np.exp(1j * np.pi * idx * np.cos((30/180)*np.pi)).T.reshape(8,1)
     #print(x.shape)
@@ -77,10 +84,12 @@ for epo in range(10):
     #precoding_matrix =translate_precoding_matrix(precoding_matrix)
     precoding_matrix_hermite = np.transpose(np.conj(precoding_matrix))
     Hset_hermite = np.transpose(np.conj(Hset))
+
     print("precoding",precoding_matrix)
     #r2 = np.dot(precoding_matrix_hermite, Hset_hermite.T)
     r1 = np.dot(Hset.T, precoding_matrix[0])
     print("r90", r1[28:35])
+
     #r = np.dot(r1,r2)
     plt.polar(angle_set, np.abs(r1))
     plt.show()

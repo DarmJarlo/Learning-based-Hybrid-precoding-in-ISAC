@@ -4,12 +4,14 @@ mode = "V2V"
 #mode = "V2I"
 # some training parameters
 #imagine the vertical distance between RSU and highway is 20
+
 iters = 100
 one_iter_period = 30#s
 train_data_period = 1 #s
 num_vehicle =  5
 batch_size = 16
 matched_filtering_gain =10
+
 
 #parameter for v2v
 ################################################################3
@@ -74,7 +76,9 @@ sigma_z = 1
 
 
 #path loss parameters
+
 d0 = 10
+
 alpha = 70 #path_loss alpha at reference distance d0 UNIT: dB
 path_loss_exponent = -2.55
 
