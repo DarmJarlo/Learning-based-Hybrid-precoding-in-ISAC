@@ -24,6 +24,34 @@ def tf_matrix_mse(reference_precoding,predict_precoding):
 
     abs_sum = tf.reduce_sum(tf.abs(diff_matrix)**2)
     return abs_sum
+def simple_precoder(theta,distance):
+    # theta shape[num_vehicle, 200]
+    # distance shape[num_vehicle, 200]
+    print(distance)
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
+    idx = np.arange(antenna_size)
+    precoder= np.zeros((theta.shape[1],antenna_size, num_vehicle), dtype=complex)
+    distance_sum = np.sum(distance,axis = 0)
+    print("distance_sum",distance_sum)
+    distance_norm = config_parameter.power / distance_sum
+    distance_mod = np.zeros((num_vehicle,theta.shape[1]))
+    for m in range(num_vehicle):
+
+        distance_mod[m] = distance_norm* distance[m]
+    print("distance shape",distance_mod)
+    for batchindex in range(theta.shape[1]):
+        for carindex in range(theta.shape[0]):
+
+            precoder[batchindex,:,carindex] = np.exp(1j * np.pi * idx * np.cos(theta[carindex,batchindex]))
+            precoder[batchindex,:,carindex] = precoder[batchindex,:,carindex] * distance_mod[carindex,batchindex]
+    return precoder
+
 
 def zero_forcing(CSI):
     H_inv = np.linalg.pinv(CSI)
@@ -137,14 +165,14 @@ def generate_random_sample():
         antenna_size = config_parameter.vehicle_antenna_size
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
 
-    real_distance = np.zeros((num_vehicle,100))
-    theta = np.zeros((num_vehicle,100))
+    real_distance = np.zeros((num_vehicle,200))
+    theta = np.zeros((num_vehicle,200))
 
     for i in range(num_vehicle):
-        real_distance[i]= np.random.uniform(50,200,100)
+        real_distance[i]= np.random.uniform(50,300,200)
 
         #generate 100 random number between -1 and 1
-        theta[i] = np.random.uniform(0,1,100)
+        theta[i] = np.random.uniform(0.1,1,200)
         #replace the 0 in theta_list with 0.1
         theta[i] = np.where(theta[i] == 0, 0.1, theta[i])
 
@@ -152,9 +180,11 @@ def generate_random_sample():
 
 
     theta = theta * np.pi
-    steering_vector = np.zeros((100,num_vehicle,antenna_size,),dtype=complex)
-    pathloss = np.zeros((100,num_vehicle,antenna_size))
-    beta = np.zeros((100,num_vehicle,antenna_size),dtype=complex)
+    normal_precoder = simple_precoder(theta,real_distance)
+    normal_precoder = np.transpose(normal_precoder,(0,2,1))
+    steering_vector = np.zeros((200,num_vehicle,antenna_size,),dtype=complex)
+    pathloss = np.zeros((200,num_vehicle,antenna_size))
+    beta = np.zeros((200,num_vehicle,antenna_size),dtype=complex)
     for i in range(antenna_size):
         for j in range(num_vehicle):
             for m in range(len(theta[j])):
@@ -165,20 +195,22 @@ def generate_random_sample():
     CSI = np.multiply(pathloss,np.conjugate(steering_vector))
     print(CSI.shape)
     CSI = sqrt(antenna_size)*CSI
-    zf_matrix = np.zeros((100,num_vehicle,antenna_size),dtype=complex)
-    for n in range(100):
+    zf_matrix = np.zeros((200,num_vehicle,antenna_size),dtype=complex)
+    for n in range(200):
 
         zf_matrix[n,:,:] = zero_forcing(CSI[n,:,:]).T
         #print(zf_matrix.shape)
     #generate the input for the neural network
-    input_whole = np.zeros(shape=(100, num_vehicle,
+    input_whole = np.zeros(shape=(200, num_vehicle,
                10 * antenna_size))
     input_whole[:, :, 0:antenna_size] = np.real(steering_vector)
     input_whole[:, :, antenna_size:2 * antenna_size] = np.imag(steering_vector)
     input_whole[:,:,2*antenna_size:3*antenna_size] = np.real(CSI)
     input_whole[:,:,3*antenna_size:4*antenna_size] = np.imag(CSI)
-    input_whole[:,:,4*antenna_size:5*antenna_size] = np.real(zf_matrix)
-    input_whole[:, :, 5 * antenna_size:6 * antenna_size] = np.imag(zf_matrix)
+    #input_whole[:,:,4*antenna_size:5*antenna_size] = np.real(zf_matrix)
+    #input_whole[:, :, 5 * antenna_size:6 * antenna_size] = np.imag(zf_matrix)
+    input_whole[:,:,4*antenna_size:5*antenna_size] = np.real(normal_precoder)
+    input_whole[:, :, 5 * antenna_size:6 * antenna_size] = np.imag(normal_precoder)
     input_whole[:, :, 6 * antenna_size:7 * antenna_size] = np.real(beta)
     input_whole[:,:,7*antenna_size:8*antenna_size] = np.imag(beta)
     for i in range(0, antenna_size):

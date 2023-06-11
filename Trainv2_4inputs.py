@@ -184,7 +184,7 @@ if __name__ == '__main__':
     #if gpus:
      #   for gpu in gpus:
       #      tf.config.experimental.set_memory_growth(gpu, True)
-    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.03)
+    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.01)
     #optimizer_1 = tf.keras.optimizers.Adagrad(
      #   learning_rate=0.05,
       #  initial_accumulator_value=0.1,
@@ -289,7 +289,7 @@ if __name__ == '__main__':
         print("1")
 
         input_whole = loss.generate_random_sample()
-        for epo in range(0,24):
+        for epo in range(0,45):
 
             #print(input_whole.shape)
             communication_loss = 0

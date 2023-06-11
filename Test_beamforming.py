@@ -46,7 +46,7 @@ for epo in range(10):
     precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
     print("beamforming",precoding_matrix)
     print("theta",input_single[0,:,:,8*antenna_size+1])
-    print("distance",input_single[0,:,:,9*antenna_size+1])
+    print("real distance",input_single[0,:,:,9*antenna_size+1])
     '''
     steering_vector_this = tf.complex(input_single[0,-1,:,0:antenna_size], input_single[0,-1,:,antenna_size:2*antenna_size])
     steering_vector_this = tf.reshape(steering_vector_this, (antenna_size, num_vehicle))
