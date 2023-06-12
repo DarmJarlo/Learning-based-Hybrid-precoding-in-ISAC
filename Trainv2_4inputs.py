@@ -275,7 +275,7 @@ if __name__ == '__main__':
             tf.summary.scalar("Pathloss", pathloss)
         optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
         '''
-        return communication_loss,precoding_matrix,CSI,gradients
+        return sum_rate_this,precoding_matrix,CSI,gradients
 
 
     crb_d_sum_list = []  # the crb distance sum at all timepoints in this list
@@ -283,10 +283,56 @@ if __name__ == '__main__':
 
     sum_rate_list_reciprocal = []  # the sum rate at all timepoints in this list
     sum_rate_list = []
-
+    angle, distance = loss.load_data()
+    input_whole = loss.Conversion2input(angle, distance)
+    input_whole = np.expand_dims(input_whole, axis=1)
+    tf_dataset = tf.data.Dataset.from_tensor_slices(input_whole)
+    tf_dataset = tf_dataset.batch(config_parameter.batch_size)
+    #tf_dataset = tf_dataset.map(lambda x: tf.expand_dims(x, axis=1))
+    #tf_dataset = tf.expand_dims(tf_dataset, axis=0)
+    #dataset = tf.transpose(tf_dataset, perm=[1, 0, 2, 3])
     for iter in range(0, config_parameter.iters):
+        print(iter)
+        tf_dataset = tf_dataset.shuffle(3200)
+        #tf_dataset = tf_dataset.batch(config_parameter.batch_size)
+        for batch in tf_dataset:
+            print(tf.shape(batch))
+            input_single = batch
+            communication_loss, precoding_matrix, CSI, gradients = train_step(input_single)
 
-        # the sum rate at all timepoints in this list
+            print("Epoch: {}/{},loss: {}".format(iter + 1, config_parameter.iters,
+                                                           communication_loss.numpy()
+                                                           ))
+            file_path = "precoding_matrix.txt"
+            with open(file_path, "w") as file:
+                file.write("precoding")
+                file.write(str(precoding_matrix.numpy()) + "\n")
+                file.write("theta")
+                file.write(str(input_single[0, -1, 0:num_vehicle, 2 * antenna_size]) + "\n")
+                file.write("distance")
+                file.write(str(input_single[0, -1, 0:num_vehicle, 3 * antenna_size]) + "\n")
+                file.write("CSI")
+                file.write(str(CSI.numpy()) + "\n")
+                file.write("gradients")
+                file.write(str(gradients) + "\n")
+        sum_rate_list.append(communication_loss)
+        timestep = list(range(1, len(sum_rate_list) + 1))
+        plt.plot(timestep, sum_rate_list, 'b-o')
+        plt.xlabel('Timestep')
+        plt.ylabel('Loss')
+        plt.title('Loss vs Timestep')
+        plt.grid(True)
+        plt.show()
+        # tf.saved_model.save(model, 'Keras_models/new_model')
+        model.save_weights(filepath='Keras_models/new_model', save_format='tf')
+        '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
+                                               monitor='val_accuracy',
+                                               save_weights_only=False, period=1, verbose=1, save_best_only=False)'''
+        # tf.saved_model.save(model, )
+    model.save_weights(filepath='Keras_models/new_model', save_format='tf')
+
+'''
+    # the sum rate at all timepoints in this list
         sigma_time_delay = np.zeros(
             shape=(
             num_vehicle, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1),
@@ -298,7 +344,8 @@ if __name__ == '__main__':
         # Reference_Signal = loss.Chirp_signal()
         print("1")
 
-        input_whole = loss.generate_random_sample()
+        #input_whole = loss.generate_random_sample()
+
 
         for epo in range(0,45):
 
@@ -338,8 +385,11 @@ if __name__ == '__main__':
         plt.show()
             #tf.saved_model.save(model, 'Keras_models/new_model')
         model.save_weights(filepath='Keras_models/new_model', save_format='tf')
-        '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
+        '''
+'''
+        checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
-                                               save_weights_only=False, period=1, verbose=1, save_best_only=False)'''
+                                               save_weights_only=False, period=1, verbose=1, save_best_only=False)
         #tf.saved_model.save(model, )
     model.save_weights(filepath='Keras_models/new_model', save_format='tf')
+    '''

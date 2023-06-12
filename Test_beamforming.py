@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import config_parameter
 import loss
+import loss_all
 import tensorflow as tf
 from Trainv2_4inputs import load_model, generate_input
 
@@ -30,7 +31,7 @@ elif config_parameter.mode == "V2V":
     antenna_size = config_parameter.vehicle_antenna_size
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
 
-input_whole = loss.generate_random_sample()
+input_whole = loss_all.generate_random_sample()
 for epo in range(10):
     print(input_whole.shape)
     input_single = input_whole[epo:epo + config_parameter.batch_size, :, :]
@@ -72,7 +73,7 @@ for epo in range(10):
     angle_set = np.arange(1, 361) / 180 * np.pi
     Hset = np.exp(-1j * np.pi * idx.reshape(-1, 1) * np.cos(angle_set))
 
-    zf_matrix = tf.complex(input_single[:,-1,:,4*antenna_size:5*antenna_size], input_single[:,-1,:,5*antenna_size:6*antenna_size])
+    zf_matrix = tf.complex(input_single[0,-1,:,4*antenna_size:5*antenna_size], input_single[0,-1,:,5*antenna_size:6*antenna_size])
     print(input_single[0,-1,:,0])
     print(Hset.shape)
     print("zf_matrix",zf_matrix.numpy())
@@ -87,7 +88,8 @@ for epo in range(10):
 
     print("precoding",precoding_matrix)
     #r2 = np.dot(precoding_matrix_hermite, Hset_hermite.T)
-    r1 = np.dot(Hset.T, precoding_matrix[0])
+    #r1 = np.dot(Hset.T, zf_matrix.numpy().T)
+    r1 = np.dot(Hset.T, precoding_matrix[4])
     print("r90", r1[28:35])
 
     #r = np.dot(r1,r2)

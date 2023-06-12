@@ -5,7 +5,7 @@ mode = "V2V"
 # some training parameters
 #imagine the vertical distance between RSU and highway is 20
 
-iters = 100
+iters = 10
 one_iter_period = 30#s
 train_data_period = 1 #s
 num_vehicle =  5
@@ -15,8 +15,8 @@ matched_filtering_gain =10
 
 #parameter for v2v
 ################################################################3
-num_uppercar =1
-num_lowercar =1
+num_uppercar =2
+num_lowercar =2
 num_horizoncar = 0
 observer_car_init_loca = numpy.array([0,0])
 Initial_uppercar1_min = 50
@@ -50,7 +50,7 @@ power = 10
 fading_coefficient = 10 + 10j
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
-FurtherTrain = False
+FurtherTrain = True
 
 #these are for the simulation test
 speed_low = 20

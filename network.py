@@ -46,7 +46,7 @@ from tensorflow import keras
 from tensorflow.keras.layers import Conv1D, LSTM, Dense, BatchNormalization, Activation, Add,Reshape
 
 class ResNet(tf.keras.Model):
-    def __init__(self, layer_params=[1,1,1,1]):
+    def __init__(self, layer_params=[0,0,1,0]):
         super(ResNet, self).__init__()
         self.conv1 = tf.keras.layers.Conv2D(filters=64,
                                             kernel_size=(7, 7),
@@ -81,7 +81,7 @@ class ResNet(tf.keras.Model):
     def call(self, inputs, training=None, mask=None):
         x = self.conv1(inputs)
         x = self.bn1(x, training=training)
-        x = tf.nn.relu(x)
+        x = tf.nn.leaky_relu(x)
         x = self.pool1(x)
         x = self.layer1(x, training=training)
         x = self.layer2(x, training=training)
@@ -483,10 +483,10 @@ class BottleNeck(tf.keras.layers.Layer):
 
         x = self.conv1(inputs)
         x = self.bn1(x, training=training)
-        x = tf.nn.relu(x)
+        x = tf.nn.leaky_relu(x)
         x = self.conv2(x)
         x = self.bn2(x, training=training)
-        x = tf.nn.relu(x)
+        x = tf.nn.leaky_relu(x)
         x = self.conv3(x)
         x = self.bn3(x, training=training)
 
