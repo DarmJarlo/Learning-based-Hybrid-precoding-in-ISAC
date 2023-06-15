@@ -27,7 +27,7 @@ def load_model():
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
 
-    model.build(input_shape=(config_parameter.batch_size, 1, num_vehicle,80))
+    model.build(input_shape=(config_parameter.batch_size, num_vehicle,80,1))
 
     model.summary()
     if config_parameter.FurtherTrain ==True:
@@ -188,13 +188,14 @@ if __name__ == '__main__':
      #   for gpu in gpus:
       #      tf.config.experimental.set_memory_growth(gpu, True)
     optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.01)
-
-    #optimizer_1 = tf.keras.optimizers.Adagrad(
-     #   learning_rate=0.05,
-      #  initial_accumulator_value=0.1,
-       # epsilon=1e-07,
-        #name="Adagrad"
-   # )
+    '''
+    optimizer_1 = tf.keras.optimizers.Adagrad(
+        learning_rate=0.01,
+        initial_accumulator_value=0.1,
+        epsilon=1e-07,
+        name="Adagrad"
+    )
+    '''
     model = load_model()
 
 
@@ -225,14 +226,14 @@ if __name__ == '__main__':
             precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
 
 
-            steering_vector_this = tf.complex(input[:,-1,:,0:antenna_size], input[:,-1,:,antenna_size:2*antenna_size])
+            steering_vector_this_o = tf.complex(input[:,:,0:antenna_size,0], input[:,:,antenna_size:2*antenna_size,0])
             #below is the real right steering vector
-            steering_vector_this = tf.transpose(steering_vector_this, perm=[0, 2, 1])
-            CSI = tf.complex(input[:,-1,:,2*antenna_size:3*antenna_size], input[:,-1,:,3*antenna_size:4*antenna_size])
+            steering_vector_this = tf.transpose(steering_vector_this_o, perm=[0, 2, 1])
+            CSI = tf.complex(input[:,:,2*antenna_size:3*antenna_size,0], input[:,:,3*antenna_size:4*antenna_size,0])
             #CSi here shape is (BATCH,NUMVEHICLE,ANTENNAS)
-            zf_matrix = tf.complex(input[:,-1,:,4*antenna_size:5*antenna_size], input[:,-1,:,5*antenna_size:6*antenna_size])
+            zf_matrix = tf.complex(input[:,:,4*antenna_size:5*antenna_size,0], input[:,:,5*antenna_size:6*antenna_size,0])
 
-            zf_sumrate = loss.tf_loss_sumrate(CSI,tf.transpose(zf_matrix,perm=[0,2,1]))
+            #zf_sumrate = loss.tf_loss_sumrate(CSI,tf.transpose(zf_matrix,perm=[0,2,1]))
             #sigma_doppler = loss.tf
             #steering_hermite = tf.transpose(tf.math.conj(steering_vector_this))
 
@@ -249,14 +250,23 @@ if __name__ == '__main__':
             sum_rate_this = loss.tf_loss_sumrate(CSI, precoding_matrix)
 
             sum_rate_this = tf.cast(sum_rate_this, tf.float32)
-            zf_sumrate = tf.cast(zf_sumrate, tf.float32)
+            #zf_sumrate = tf.cast(zf_sumrate, tf.float32)
             batch_size = tf.cast(batch_size, tf.float32)
-            #communication_loss = -sum_rate_this
+            communication_loss = -sum_rate_this
             #communication_loss = -sum_rate_this+loss_MSE/(tf.stop_gradient(loss_MSE/(sum_rate_this)))
-            communication_loss = tf.reduce_sum(zf_sumrate-sum_rate_this)/batch_size
-            #Sigma_time_delay =
+            #communication_loss = tf.reduce_sum(zf_sumrate-sum_rate_this)/batch_size
+            beta = tf.complex(input[:,:,6*antenna_size:7*antenna_size,0], input[:,:,7*antenna_size:8*antenna_size,0])
+
+            Sigma_time_delay = loss.tf_sigma_delay_square(steering_vector_this_o,precoding_matrix,beta)
+            #Sigma_doppler = loss.tf_sigma_doppler_square(steering_vector_this,precoding_matrix,beta)
+            CRB_d = loss.tf_CRB_distance(Sigma_time_delay)
+            theta = tf.reduce_mean(input[:,:,8*antenna_size:9*antenna_size,0])
+            CRB_angle =0
+            #CRB_angle = loss.tf_CRB_angle(beta,precoding_matrix,theta)
+            crb_combined_loss = CRB_d*10e3 +CRB_angle*10e3
             #CRB_d = loss.tf_CRB_distance()
             #communication_loss = communication_loss/input.shape[0]
+            combined_loss = crb_combined_loss - sum_rate_this
 
             #crb_loss =
             #communication_loss = tf.math.divide(1.0, sum_rate_this)
@@ -275,7 +285,7 @@ if __name__ == '__main__':
             tf.summary.scalar("Pathloss", pathloss)
         optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
         '''
-        return sum_rate_this,precoding_matrix,CSI,gradients
+        return combined_loss,precoding_matrix,CSI,gradients,CRB_d
 
 
     crb_d_sum_list = []  # the crb distance sum at all timepoints in this list
@@ -285,7 +295,7 @@ if __name__ == '__main__':
     sum_rate_list = []
     angle, distance = loss.load_data()
     input_whole = loss.Conversion2input(angle, distance)
-    input_whole = np.expand_dims(input_whole, axis=1)
+    input_whole = np.expand_dims(input_whole, axis=3)
     tf_dataset = tf.data.Dataset.from_tensor_slices(input_whole)
     tf_dataset = tf_dataset.batch(config_parameter.batch_size)
     #tf_dataset = tf_dataset.map(lambda x: tf.expand_dims(x, axis=1))
@@ -298,19 +308,19 @@ if __name__ == '__main__':
         for batch in tf_dataset:
             print(tf.shape(batch))
             input_single = batch
-            communication_loss, precoding_matrix, CSI, gradients = train_step(input_single)
+            communication_loss, precoding_matrix, CSI, gradients,CRB_d = train_step(input_single)
 
             print("Epoch: {}/{},loss: {}".format(iter + 1, config_parameter.iters,
-                                                           communication_loss.numpy()
+                                                           communication_loss
                                                            ))
             file_path = "precoding_matrix.txt"
             with open(file_path, "w") as file:
-                file.write("precoding")
-                file.write(str(precoding_matrix.numpy()) + "\n")
+                file.write("crb_d")
+                file.write(str(CRB_d.numpy()) + "\n")
                 file.write("theta")
-                file.write(str(input_single[0, -1, 0:num_vehicle, 2 * antenna_size]) + "\n")
+                file.write(str(input_single[0, 0:num_vehicle, 2 * antenna_size]) + "\n")
                 file.write("distance")
-                file.write(str(input_single[0, -1, 0:num_vehicle, 3 * antenna_size]) + "\n")
+                file.write(str(input_single[0, 0:num_vehicle, 3 * antenna_size]) + "\n")
                 file.write("CSI")
                 file.write(str(CSI.numpy()) + "\n")
                 file.write("gradients")

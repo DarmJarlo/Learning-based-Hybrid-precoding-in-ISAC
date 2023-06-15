@@ -45,12 +45,12 @@ Initial_location_min = 50
 Initial_location_max = 100
 Radar_measure_slot = 0.1 #s
 length_echo = 0.005  # length of echo ms
-power = 10
+power = 1
 
 fading_coefficient = 10 + 10j
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
-FurtherTrain = True
+FurtherTrain = False
 
 #these are for the simulation test
 speed_low = 20
@@ -67,19 +67,19 @@ train_initial_location_min = 30
 train_initial_location_max = 120
 
 #setup for metrics
-rf_size = 1
+rf_size = 4
 antenna_size = 32
 vehicle_antenna_size = 8
 receiver_antenna_size = 1
-sigma_k = 1
-sigma_z = 1
+sigma_k = 1e-10
+sigma_z = 1e-10
 
 
 #path loss parameters
 
 d0 = 10
 
-alpha = 70 #path_loss alpha at reference distance d0 UNIT: dB
+alpha = 1e-6#path_loss alpha at reference distance d0 UNIT: dB
 path_loss_exponent = -2.55
 
 
@@ -98,9 +98,9 @@ rou_dopplershift = 2e-6
 
 
 
-loss_mode = "Upper_sum_rate"   # three mode
+#loss_mode = "Upper_sum_rate"   # three mode
 #loss_mode = "lower_bound_crb"
-#loss_mode = "combined_loss"
+loss_mode = "combined_loss"
 
 
 #below are the parameter for v2v

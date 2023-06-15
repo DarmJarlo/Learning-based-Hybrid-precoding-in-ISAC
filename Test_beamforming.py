@@ -36,8 +36,8 @@ for epo in range(10):
     print(input_whole.shape)
     input_single = input_whole[epo:epo + config_parameter.batch_size, :, :]
     input_single = tf.convert_to_tensor(input_single)
-    input_single = tf.expand_dims(input_single, axis=0)
-    input_single = tf.transpose(input_single,perm=[1,0,2,3])
+    input_single = tf.expand_dims(input_single, axis=3)
+    #input_single = tf.transpose(input_single,perm=[1,0,2,3])
 
 
     output = model(input_single)
@@ -50,8 +50,8 @@ for epo in range(10):
     precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
     print("beamforming",precoding_matrix)
 
-    print("theta",input_single[0,:,:,8*antenna_size+1])
-    print("real distance",input_single[0,:,:,9*antenna_size+1])
+    print("theta",input_single[0,:,8*antenna_size+1,0])
+    print("real distance",input_single[0,:,9*antenna_size+1,0])
 
     '''
     steering_vector_this = tf.complex(input_single[0,-1,:,0:antenna_size], input_single[0,-1,:,antenna_size:2*antenna_size])
@@ -73,10 +73,10 @@ for epo in range(10):
     angle_set = np.arange(1, 361) / 180 * np.pi
     Hset = np.exp(-1j * np.pi * idx.reshape(-1, 1) * np.cos(angle_set))
 
-    zf_matrix = tf.complex(input_single[0,-1,:,4*antenna_size:5*antenna_size], input_single[0,-1,:,5*antenna_size:6*antenna_size])
+    zf_matrix = tf.complex(input_single[0,:,4*antenna_size:5*antenna_size,0], input_single[0,:,5*antenna_size:6*antenna_size,0])
     print(input_single[0,-1,:,0])
     print(Hset.shape)
-    print("zf_matrix",zf_matrix.numpy())
+    #print("zf_matrix",zf_matrix.numpy())
 
     precoding_matrix = precoding_matrix.numpy()
     #x = np.exp(1j * np.pi * idx * np.cos((30/180)*np.pi)).T.reshape(8,1)
@@ -88,8 +88,8 @@ for epo in range(10):
 
     print("precoding",precoding_matrix)
     #r2 = np.dot(precoding_matrix_hermite, Hset_hermite.T)
-    #r1 = np.dot(Hset.T, zf_matrix.numpy().T)
-    r1 = np.dot(Hset.T, precoding_matrix[4])
+    #r1 = np.dot(Hset.T, zf_matrix.numpy()[1].T)
+    r1 = np.dot(Hset.T, precoding_matrix[0])
     print("r90", r1[28:35])
 
     #r = np.dot(r1,r2)
