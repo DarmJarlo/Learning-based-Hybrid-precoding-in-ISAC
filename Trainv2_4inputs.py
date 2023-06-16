@@ -222,7 +222,7 @@ if __name__ == '__main__':
             shape = tf.shape(input)
 
             batch_size= shape[0]
-            Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix(Output=output)
+            Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
             precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
 
 
@@ -233,7 +233,7 @@ if __name__ == '__main__':
             #CSi here shape is (BATCH,NUMVEHICLE,ANTENNAS)
             zf_matrix = tf.complex(input[:,:,4*antenna_size:5*antenna_size,0], input[:,:,5*antenna_size:6*antenna_size,0])
 
-            #zf_sumrate = loss.tf_loss_sumrate(CSI,tf.transpose(zf_matrix,perm=[0,2,1]))
+            zf_sumrate = loss.tf_loss_sumrate(CSI,tf.transpose(zf_matrix,perm=[0,2,1]))
             #sigma_doppler = loss.tf
             #steering_hermite = tf.transpose(tf.math.conj(steering_vector_this))
 
@@ -263,11 +263,14 @@ if __name__ == '__main__':
             theta = tf.reduce_mean(input[:,:,8*antenna_size:9*antenna_size,0])
             CRB_angle =0
             #CRB_angle = loss.tf_CRB_angle(beta,precoding_matrix,theta)
-            crb_combined_loss = CRB_d*10e3 +CRB_angle*10e3
+            crb_combined_loss = CRB_d*1 +CRB_angle*10e3
             #CRB_d = loss.tf_CRB_distance()
             #communication_loss = communication_loss/input.shape[0]
-            combined_loss = crb_combined_loss - sum_rate_this
-
+            precoding_matrix = tf.cast(precoding_matrix, tf.complex128)
+            mse_value = tf.reduce_mean(tf.abs(precoding_matrix - tf.transpose(zf_matrix,perm=[0,2,1])), axis=(1,2))
+            mse_value = tf.cast(mse_value, tf.float32)
+            #combined_loss = crb_combined_loss - sum_rate_this + 1e15*mse_value
+            combined_loss = 1e15*mse_value
             #crb_loss =
             #communication_loss = tf.math.divide(1.0, sum_rate_this)
         if config_parameter.loss_mode == "Upper_sum_rate":
@@ -296,6 +299,11 @@ if __name__ == '__main__':
     angle, distance = loss.load_data()
     input_whole = loss.Conversion2input(angle, distance)
     input_whole = np.expand_dims(input_whole, axis=3)
+    #normalized_data = (data - np.mean(data)) / np.std(data)
+
+    #input_mean = np.mean(input_whole, axis=0)
+    #input_var = np.var(input_whole, axis=0)
+    #input_whole_norm = (input_whole - input_mean)/
     tf_dataset = tf.data.Dataset.from_tensor_slices(input_whole)
     tf_dataset = tf_dataset.batch(config_parameter.batch_size)
     #tf_dataset = tf_dataset.map(lambda x: tf.expand_dims(x, axis=1))

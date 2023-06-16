@@ -77,6 +77,24 @@ def Test_svd():
     print("error",np.exp(1j*matrix_rad)-reconstruct)
 
     return complex_matrix,complex_matrix_norm,reconstruct,reconstruct_rad
+angle,distance = loss.load_data()
+selected_angle = angle[0:4,:]
+selected_distance = distance[0:4,:]
+precoding_matrix = loss.simple_precoder(selected_angle.T,selected_distance.T)
+CSI= np.zeros((4,4,8),dtype=complex)
+print(CSI.shape)
+for i in range(4):
+    #cosangle = np.cos(np.pi*cos(selected_angle[i]))
+    print("selected_angle",selected_angle[i])
+    print("selected_angle",np.cos(selected_angle[i]))
+    print("selected_angle",np.cos(np.pi*np.cos(selected_angle[i])))
+    CSI[i] = loss.calculate_steer_vector(selected_angle[i]).T
+print("csi",CSI)
+CSI_o = np.multiply(5,CSI)
+print("csi111111",CSI_o)
+Test_sumrate(CSI,precoding_matrix)
+
+'''
 complex_matrix,complex_matrix_norm,reconstruct,reconstruct_rad=Test_svd()
 idx = np.arange(8)
 angle_set = np.arange(1, 361) / 180 * np.pi
@@ -88,6 +106,7 @@ print("r90", r1[28:35])
 # r = np.dot(r1,r2)
 plt.polar(angle_set, np.abs(r2))
 plt.show()
+'''
 '''
 angle = np.array([[0.1,0.2,0.1,0.2],[0.2,0.3,0.2,0.3],[0.7,0.8,0.7,0.8],[0.8,0.9,0.8,0.9]])
 

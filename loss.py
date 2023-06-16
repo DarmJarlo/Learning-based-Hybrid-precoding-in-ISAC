@@ -29,6 +29,12 @@ def complex_matrix_to_polar(matrix):
 
     return polar_matrix
 
+def svd_csi(CSI):
+    U, s, Vh = np.linalg.svd(CSI, full_matrices=False)
+    num_rf = config_parameter.rf_size
+    analog_part = Vh[:, :num_rf]
+    digital_part = np.dot(CSI,analog_part) #not right here
+    return analog_part,digital_part
 
 def svd_zf(zf_matrix):
     U, s, Vh = np.linalg.svd(zf_matrix, full_matrices=False)
@@ -54,7 +60,9 @@ def svd_zf(zf_matrix):
 def load_data():
     data = np.load("dataset.npy")
     distance = data[:, 4:]
+    print("distance",distance[10,:])
     angle = data[:, :4]
+    print("angle",angle[10,:])
     return angle,distance
 def Conversion2input_mod(angle,distance):
     theta = angle.T
@@ -166,12 +174,48 @@ def Conversion2input(angle,distance):
         file.write("real_distance")
         file.write(str(real_distance) + "\n")
     return input_whole
+def Conversion2CSI(angle,distance):
+    theta = angle.T
+    real_distance = distance.T
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+    num_sample = theta.shape[1]
+    steering_vector = np.zeros((num_sample,num_vehicle,antenna_size,),dtype=complex)
+    pathloss = np.zeros((num_sample,num_vehicle,antenna_size))
+    zf_matrix = np.zeros((num_sample,num_vehicle,antenna_size),dtype=complex)
 
+
+
+    for i in range(antenna_size):
+        for j in range(num_vehicle):
+            for m in range(num_sample):
+                steering_vector[m][j][i] = np.exp(-1j*np.pi*i*np.cos(theta[j][m]))
+
+                #attention this steering_vector is the transposed steering vector
+                pathloss[m][j][i] = Path_loss(real_distance[j,m])
+
+    CSI_o = np.multiply(pathloss, np.conjugate(steering_vector))
+    CSI = sqrt(antenna_size) * CSI_o
+    for n in range(num_sample):
+
+        zf_matrix[n,:,:] = zero_forcing(CSI[n,:,:]).T
+    input_whole = np.zeros(shape=(num_sample, num_vehicle,
+               4 * antenna_size))
+    input_whole[:,:,0:1*antenna_size] = np.real(CSI)
+    input_whole[:,:,1*antenna_size:2*antenna_size] = np.imag(CSI)
+    input_whole[:,:,2*antenna_size:3*antenna_size] = np.real(zf_matrix)
+    input_whole[:, :, 3 * antenna_size:4 * antenna_size] = np.imag(zf_matrix)
+
+    return input_whole
 "input generation"
 def simple_precoder(theta,distance):
     # theta shape[num_vehicle, 200]
     # distance shape[num_vehicle, 200]
-    print(distance)
+    #print(distance)
     if config_parameter.mode == "V2I":
         antenna_size = config_parameter.antenna_size
         num_vehicle = config_parameter.num_vehicle
@@ -222,13 +266,71 @@ def calculate_steer_vector(theta_list):
 
     return steering_vector
 def Path_loss(distance):
-    print(distance)
     pathloss = sqrt(config_parameter.alpha * ((distance / config_parameter.d0) ** config_parameter.path_loss_exponent))
     return pathloss
 def Reflection_coefficient(distance_this_vehicle):
     beta = config_parameter.fading_coefficient/(2*distance_this_vehicle)
     return beta
 "conversion of output"
+def tf_Output2PrecodingMatrix_rad(Output):
+    shape = tf.shape(Output)
+    batch_size = shape[0]
+
+
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+    #Analog_Matrix = tf.zeros((antenna_size, config_parameter.rf_size), dtype=tf.complex128)
+    #Digital_real_Matrix = tf.zeros((config_parameter.rf_size, num_vehicle))
+    #Digital_im_Matrix = tf.zeros((config_parameter.rf_size, num_vehicle))
+    #Digital_Matrix = tf.zeros((config_parameter.rf_size, num_vehicle), dtype=tf.complex128)
+    Analog_part = Output[:, 0:antenna_size * config_parameter.rf_size]
+    Analog_part_reshaped = tf.reshape(Analog_part, (batch_size,antenna_size, config_parameter.rf_size))
+    antenna_size_o = tf.cast(antenna_size, tf.float32)
+    g = tf.sqrt(antenna_size_o)
+    g= tf.cast(g, tf.complex64)
+    Analog_part_reshaped_o = tf.cast(Analog_part_reshaped, tf.complex64)
+    Analog_Matrix = g*tf.exp(1j * Analog_part_reshaped_o)
+
+
+    adder = antenna_size * config_parameter.rf_size
+    Digital_real = Output[:, adder: adder + config_parameter.rf_size * num_vehicle]
+    Digital_imginary = Output[:, adder + config_parameter.rf_size * num_vehicle:]
+
+    Digital_real_reshaped = tf.reshape(Digital_real, (batch_size,config_parameter.rf_size, num_vehicle))
+    Digital_imginary_reshaped = tf.reshape(Digital_imginary, (batch_size,config_parameter.rf_size, num_vehicle))
+
+
+    Digital_Matrix = tf.complex(Digital_real_reshaped, Digital_imginary_reshaped)
+
+    print(Digital_Matrix)
+    return Analog_Matrix, Digital_Matrix
+def tf_Output2digitalPrecoding(Output,zf_matrix):
+    shape = tf.shape(Output)
+    batch_size = shape[0]
+
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
+    antenna_size_f = tf.cast(antenna_size, tf.float32)
+    # dont forget here we are inputing a whole batch
+    G = tf.math.sqrt(antenna_size_f)
+    Real = Output[:, 0:antenna_size * num_vehicle]
+    Imag = Output[:, antenna_size * num_vehicle:]
+    # this reshape has been tested
+    Real_reshaped = tf.reshape(Real, (batch_size,antenna_size, num_vehicle))
+    Imag_reshaped = tf.reshape(Imag, (batch_size,antenna_size, num_vehicle))
+    Digital_Matrix = tf.complex(Real_reshaped, Imag_reshaped)
+    Digital_Matrix_e = tf.transpose(zf_matrix,perm=[0,2,1]) + tf.cast(Digital_Matrix, tf.complex128)
+    return Digital_Matrix_e
+
 def tf_Output2PrecodingMatrix(Output):
     shape = tf.shape(Output)
     batch_size = shape[0]
@@ -295,8 +397,8 @@ def tf_loss_sumrate(CSI, precoding_matrix):
             + config_parameter.num_horizoncar
         )
 
-    CSI = tf.cast(CSI, dtype=tf.complex64)
-    precoding_matrix = tf.cast(precoding_matrix, dtype=tf.complex64)
+    CSI = tf.cast(CSI, dtype=tf.complex128)
+    precoding_matrix = tf.cast(precoding_matrix, dtype=tf.complex128)
     print("csi",CSI)
     #precoding_shape : 8,2   CSI(2,8)
     this_sinr = tf.linalg.diag_part(
@@ -332,8 +434,10 @@ def tf_loss_sumrate(CSI, precoding_matrix):
     print("thissinr",this_sinr)
     sinr = this_sinr / sum_other  # Shape: (batch_size, num_vehicle)
     print("sinr",sinr)
+    print("sinr",tf.math.log1p(sinr))
     #sumrate = tf.reduce_sum(tf.math.log(1.0 + sinr), axis=1) / tf.math.log(2.0)
-    sumrate = tf.reduce_sum(tf.math.log1p(sinr) / tf.math.log(2.0), axis=1)
+    lg2 =tf.cast(tf.math.log1p(1.0),dtype=tf.float64)
+    sumrate = tf.reduce_sum(tf.math.log1p(sinr)/ lg2, axis=1)
 
     return sumrate
 
@@ -393,16 +497,32 @@ def tf_CRB_distance(Sigma_time_delay_2):
 
 def tf_CRB_angle(beta,precoding_matrix,theta):
     #partial should be a(batch,num_vehicle)
-    partial = tf_Echo_partial(beta,precoding_matrix,theta)
-    partial_h = tf.conj(partial)
+    matched_filter_gain = tf.constant(config_parameter.matched_filtering_gain,tf.float32)
+    # consider receive antenna equal to transmit antenna
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+    G = tf.constant(antenna_size, dtype=tf.float32)
+    firstitem = tf.multiply(G,tf.square(tf.abs(beta)))
+    first_item_m = tf.multiply(firstitem,tf.square(matched_filter_gain))
+    nt = tf.range(2, antenna_size + 1)
+
+
+
+
+    #partial = tf_Echo_partial(beta,precoding_matrix,theta)
+    #partial_h = tf.conj(partial)
 
     #partial shape = (batch_size,vehicle)
     #partial_hermite = tf.transpose(tf.conj(partial), perm=[0, 2, 1])
     sigma_rk_inv = 1 / config_parameter.sigma_rk
-    CRB_theta = 1 / (sigma_rk_inv * partial * partial_h) # I think it should be elementwise multiplication
+    CRB_theta = 1 / (sigma_rk_inv * partial_square) # I think it should be elementwise multiplication
     #reciprocal = tf.math.reciprocal(tensor)
-    abs_CRB_theta = tf.abs(CRB_theta)
-    shape = tf.shape(abs_CRB_theta)
+    #abs_CRB_theta = tf.abs(CRB_theta)
+    #shape = tf.shape(abs_CRB_theta)
     CRB_theta = tf.reduce_sum(abs_CRB_theta, axis=1)
     return CRB_theta
 def tf_Echo_partial(beta,precoding_matrix,theta):

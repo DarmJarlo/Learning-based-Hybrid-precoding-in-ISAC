@@ -49,7 +49,7 @@ class ResNet(tf.keras.Model):
     def __init__(self, layer_params=[0,0,1,0]):
         super(ResNet, self).__init__()
         self.conv1 = tf.keras.layers.Conv2D(filters=64,
-                                            kernel_size=(7, 7),
+                                            kernel_size=(3, 3),
                                             strides=2,
                                             padding="same")
         self.bn1 = tf.keras.layers.BatchNormalization()
@@ -72,10 +72,10 @@ class ResNet(tf.keras.Model):
         self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
 
-        parameter_size =2* config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle
-
+        #parameter_size = config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle
+        parameter_size = 2*config_parameter.vehicle_antenna_size*num_vehicle
         #parameter_size = config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle #e64777e4300db20e83b8d9ae1526e548fcb0d836
-
+        self.lstm = tf.keras.layers.LSTM(units=64)
         self.fc = tf.keras.layers.Dense(units=parameter_size, activation=tf.keras.activations.softmax)
 
     def call(self, inputs, training=None, mask=None):
@@ -87,6 +87,7 @@ class ResNet(tf.keras.Model):
         x = self.layer2(x, training=training)
         x = self.layer3(x, training=training)
         x = self.layer4(x, training=training)
+        #x = self.lstm(x)
         x = self.avgpool(x)
         output = self.fc(x)
 
@@ -185,8 +186,8 @@ class DL_method_NN_for_v2x(keras.Model):
         #self.concat =Concatenate()
         # self.fc2 = tf.keras.layers.Dense(units=128, activation=tf.keras.activations.softmax)
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
-        parameter_size = config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle
-
+        #parameter_size = config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle
+        parameter_size = 2 * config_parameter.vehicle_antenna_size * num_vehicle
         #self.out = Dense(parameter_size, activation='softmax', kernel_initializer=init)
 
         self.out = Dense(parameter_size, activation='softmax')#self.fc = tf.keras.layers.Dense(units=NUM_CLASSES, activation=tf.keras.activations.softmax)
@@ -216,52 +217,66 @@ class DL_method_NN_for_v2x(keras.Model):
 class DL_method_NN_for_v2x_mod(keras.Model):
     def __init__(self):
         super().__init__()
-        act_func = "relu"
+        act_func = "LeakyReLU"
         init = keras.initializers.GlorotNormal() #Xavier initializer
 
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
-        self.conv_layer1 = Conv2D(32, kernel_size=3, activation=act_func, input_shape=(1, 11, num_vehicle, 3), kernel_initializer=init, padding="same")
+        self.conv_layer1 = Conv2D(32, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
         self.bn1 = keras.layers.BatchNormalization()
         self.maxpool1 = MaxPooling2D()
         self.conv_layer2 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
+        self.dropout2 = keras.layers.Dropout(0.05)
         self.bn2 = keras.layers.BatchNormalization()
         self.maxpool2 = MaxPooling2D()
-        self.conv_layer3 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
+        self.conv_layer3 = Conv2D(128, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
+        self.dropout3 = keras.layers.Dropout(0.05)
         self.bn3 = keras.layers.BatchNormalization()
         self.maxpool3 = MaxPooling2D()
+        self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
         self.flatten = Flatten()
-        self.dense_1 = Dense(1200, activation=act_func, kernel_initializer=init)
-        self.dense_2 = Dense(1200, activation=act_func, kernel_initializer=init)
-        self.dense_3 = Dense(600, activation=act_func, kernel_initializer=init)
-        self.dense_4 = Dense(600, activation=act_func, kernel_initializer=init)
+        #self.dense_1 = Dense(1200, activation=act_func, kernel_initializer=init)
+        #self.dense_2 = Dense(1200, activation=act_func, kernel_initializer=init)
+        #self.dense_3 = Dense(600, activation=act_func, kernel_initializer=init)
+
         #self.dense_5 = Dense(20, activation=act_func, kernel_initializer=init)
         #self.dense_6 = Dense(20, activation=act_func, kernel_initializer=init)
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
-        parameter_size = config_parameter.rf_size*config_parameter.vehicle_antenna_size + 2*config_parameter.rf_size*num_vehicle
-
-        self.out = Dense(parameter_size, activation='softmax', kernel_initializer=init)
-
+        #parameter_size = config_parameter.rf_size*config_parameter.vehicle_antenna_size + 2*config_parameter.rf_size*num_vehicle
+        parameter_size = 2 * config_parameter.vehicle_antenna_size * num_vehicle
+        #self.out = Dense(parameter_size, activation='softmax', kernel_initializer=init)
+        #self.dense_4 = Dense(parameter_size, activation='softmax', kernel_initializer=init)
+        #self.dense_4 = Dense(600, activation=act_func, kernel_initializer=init)
+        self.fc = tf.keras.layers.Dense(units=parameter_size)
+        self.act = tf.keras.layers.LeakyReLU(alpha=0.5)
 
     def call(self, input):
         out = self.conv_layer1(input)
-        out = self.maxpool1(out)
+        #out = self.maxpool1(out)
         out = self.bn1(out)
         out = self.conv_layer2(out)
+        #out= self.dropout2(out)
         #out = self.maxpool2(out)
         out = self.bn2(out)
-        #out = self.conv_layer3(out)
+        out = self.conv_layer3(out)
+        out = self.bn3(out)
+        #out = self.dropout3(out)
+        out = self.avgpool(out)
         #out = self.maxpool3(out)
         #out = self.bn3(out)
         out = self.flatten(out)
 
-        out = self.dense_1(out)
-        out = self.dense_2(out)
-        out = self.dense_3(out)
-        out = self.out(out)
-        Parameter = tf.clip_by_value(out,1e-10,1-1e-10)
+        #out = self.dense_1(out)
+        #out = self.dense_2(out)
+        #out = self.dense_3(out)
+        #out = self.dense_4(out)
+        out = self.fc(out)
+        x = self.act(out)
+        x = tf.where(tf.math.greater(x, 0), tf.minimum(x, 5.0), tf.maximum(x, -5.0))
+        #out = tf.clip_by_value(out, 1e-10, 5-(1e-10))
+        #Parameter = tf.clip_by_value(out,1e-10,1-1e-10)
 
 
-        return Parameter
+        return x
 
 
 
@@ -298,9 +313,9 @@ class DL_method_NN_with_theta(keras.Model):
         out = self.conv_layer2(out)
         out = self.maxpool2(out)
         out = self.bn2(out)
-        #out = self.conv_layer3(out)
-        #out = self.maxpool3(out)
-        #out = self.bn3(out)
+        out = self.conv_layer3(out)
+        out = self.maxpool3(out)
+        out = self.bn3(out)
         out = self.flatten(out)
 
         out = self.dense_1(out)
@@ -327,8 +342,8 @@ class DL_method_NN(keras.Model):
         self.bn3 = keras.layers.BatchNormalization()
         self.maxpool3 = MaxPooling2D()
         self.flatten = Flatten()
-        self.dense_1 = Dense(1200, activation=act_func, kernel_initializer=init)
-        self.dense_2 = Dense(1200, activation=act_func, kernel_initializer=init)
+        #self.dense_1 = Dense(1200, activation=act_func, kernel_initializer=init)
+        #self.dense_2 = Dense(1200, activation=act_func, kernel_initializer=init)
         self.dense_3 = Dense(600, activation=act_func, kernel_initializer=init)
         self.dense_4 = Dense(600, activation=act_func, kernel_initializer=init)
         #self.dense_5 = Dense(20, activation=act_func, kernel_initializer=init)

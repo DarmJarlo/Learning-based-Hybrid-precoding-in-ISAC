@@ -5,11 +5,11 @@ mode = "V2V"
 # some training parameters
 #imagine the vertical distance between RSU and highway is 20
 
-iters = 10
+iters = 1000
 one_iter_period = 30#s
 train_data_period = 1 #s
 num_vehicle =  5
-batch_size = 16
+batch_size = 32
 matched_filtering_gain =10
 
 
@@ -45,12 +45,12 @@ Initial_location_min = 50
 Initial_location_max = 100
 Radar_measure_slot = 0.1 #s
 length_echo = 0.005  # length of echo ms
-power = 1
+power = 30
 
 fading_coefficient = 10 + 10j
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
-FurtherTrain = False
+FurtherTrain = True
 
 #these are for the simulation test
 speed_low = 20
@@ -78,8 +78,8 @@ sigma_z = 1e-10
 #path loss parameters
 
 d0 = 10
-
-alpha = 1e-6#path_loss alpha at reference distance d0 UNIT: dB
+alpha = 10
+#alpha = 1e-6#path_loss alpha at reference distance d0 UNIT: dB
 path_loss_exponent = -2.55
 
 
@@ -98,9 +98,9 @@ rou_dopplershift = 2e-6
 
 
 
-#loss_mode = "Upper_sum_rate"   # three mode
+loss_mode = "Upper_sum_rate"   # three mode
 #loss_mode = "lower_bound_crb"
-loss_mode = "combined_loss"
+#loss_mode = "combined_loss"
 
 
 #below are the parameter for v2v
