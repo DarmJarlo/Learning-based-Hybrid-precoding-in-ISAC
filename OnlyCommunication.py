@@ -10,13 +10,14 @@ import config_parameter
 sys.path.append("..")
 import matplotlib.pyplot as plt
 
-from network import DL_method_NN_for_v2x_mod,ResNetLSTMModel,ResNet
+from network import DL_method_NN_for_v2x_mod,ResNetLSTMModel,ResNet,DL_method_NN_for_v2x_hybrid
 from config_parameter import iters
 sys.path.append("..")
 import numpy as np
 #tf.compat.v1.enable_eager_execution()
 def load_model():
-    model = DL_method_NN_for_v2x_mod()
+    #model = DL_method_NN_for_v2x_mod()
+    model =DL_method_NN_for_v2x_hybrid()
     #model = ResNet()
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
@@ -26,7 +27,7 @@ def load_model():
     model.summary()
     if config_parameter.FurtherTrain ==True:
         #model = tf.saved_model.load('Keras_models/new_model')
-        model.load_weights(filepath='Keras_models/new_model')
+        model.load_weights(filepath='Keras_models_hybrid/new_model')
     return model
 
 if __name__ == '__main__':
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     #if gpus:
      #   for gpu in gpus:
       #      tf.config.experimental.set_memory_growth(gpu, True)
-    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.002)
+
     #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.01)
     #optimizer = tf.keras.optimizers.RMSprop(learning_rate=0.001)
 
@@ -91,17 +92,19 @@ if __name__ == '__main__':
             #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
             ZF_matrix = tf.complex(input[:, :, 2 * antenna_size:3 * antenna_size, 0],
                                    input[:, :, 3 * antenna_size:4 * antenna_size, 0])
-            precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output,zf_matrix=ZF_matrix)
-
+            #precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output,zf_matrix=ZF_matrix)
+            analog,digital = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+            precoding_matrix = loss.tf_Precoding_matrix_combine(analog,digital)
             CSI = tf.complex(input[:,:,0:1*antenna_size,0], input[:,:,1*antenna_size:2*antenna_size,0])
             sum_rate_this = loss.tf_loss_sumrate(CSI, precoding_matrix)
 
             sum_rate_this = tf.cast(sum_rate_this, tf.float64)
             #zf_sumrate = tf.cast(zf_sumrate, tf.float32)
             batch_size = tf.cast(batch_size, tf.float64)
+            precoding_matrix = tf.cast(precoding_matrix, tf.complex128)
             power = tf.constant(config_parameter.power, dtype=tf.float64)
             power_error = tf.reduce_sum(tf.abs(precoding_matrix),axis= (1,2))-power
-            #communication_loss = (tf.reduce_sum(power_error,axis=0)-\
+            #communication_loss = (100*tf.reduce_sum(power_error,axis=0)-\
              #                     tf.reduce_sum(-sum_rate_this, axis=0)) / batch_size
             communication_loss = tf.reduce_sum(-sum_rate_this, axis=0) / batch_size
 
@@ -124,7 +127,7 @@ if __name__ == '__main__':
         #clipped_gradients = [tf.clip_by_value(grad, 0, float('inf')) for grad in gradients]
         optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
 
-        return sum_rate_this,communication_loss,CSI,gradients,precoding_matrix,output,ZF_matrix
+        return sum_rate_this,communication_loss,CSI,gradients,precoding_matrix,output,power_error
 
 
     sum_rate_list = []
@@ -142,12 +145,19 @@ if __name__ == '__main__':
     #tf_dataset = tf.expand_dims(tf_dataset, axis=0)
     #dataset = tf.transpose(tf_dataset, perm=[1, 0, 2, 3])
     for iter in range(0, config_parameter.iters):
+        #iter+=500
+        if iter < 500:
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.002,beta_1=0.9,beta_2=0.95)
+            #optimizer_1 = tf.keras.optimizers.SGD(learning_rate=0.003, momentum=0.9, nesterov=True)
+
+        elif iter >=500:
+            optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.002)
         tf_dataset = tf_dataset.shuffle(3200)
         #tf_dataset = tf_dataset.batch(config_parameter.batch_size)
         for batch in tf_dataset:
             print(tf.shape(batch))
             input_single = batch
-            sum_rate, communication_loss, CSI, gradients,precoding_matrix,output,ZF_matrix= train_step(input_single)
+            sum_rate, communication_loss, CSI, gradients,precoding_matrix,output,powererror= train_step(input_single)
 
             print("Epoch: {}/{},loss: {}".format(iter + 1, config_parameter.iters,
                                                            communication_loss
@@ -159,11 +169,11 @@ if __name__ == '__main__':
                # print("Grad:", grad.numpy())
                # print("Variable shape:", var.shape)
                 #print("==============================")
-            with open(file_path, "w") as file:
+            with open(file_path, "a") as file:
                 file.write("Output")
                 file.write(str(output.numpy()) + "\n")
-                file.write("ZF_matrix")
-                file.write(str(ZF_matrix.numpy()) + "\n")
+                file.write("powererror")
+                file.write(str(powererror.numpy()) + "\n")
                 file.write("sum_rate")
 
 
@@ -188,9 +198,9 @@ if __name__ == '__main__':
         plt.grid(True)
         plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='Keras_models/new_model', save_format='tf')
+        model.save_weights(filepath='Keras_models_hybrid/new_model', save_format='tf')
         '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''
         # tf.saved_model.save(model, )
-    model.save_weights(filepath='Keras_models/new_model', save_format='tf')
+    model.save_weights(filepath='Keras_models_hybrid/new_model', save_format='tf')

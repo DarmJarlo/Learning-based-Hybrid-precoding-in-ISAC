@@ -47,12 +47,13 @@ output = model(input_single)
 antenna_size_f = tf.cast(antenna_size, tf.float32)
 # dont forget here we are inputing a whole batch
 G = tf.math.sqrt(antenna_size_f)
-#Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix=Analog_matrix, Digital_matrix=Digital_matrix)
 #print("Analog_matrix",Analog_matrix)
 #print("Digital_matrix",Digital_matrix)
 zf_precoding = tf.complex(input_single[:, :, 2 * antenna_size:3 * antenna_size, 0],
                                    input_single[:, :, 3 * antenna_size:4 * antenna_size, 0])
-precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output, zf_matrix=zf_precoding)
+#precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output, zf_matrix=zf_precoding)
 print("beamforming",precoding_matrix)
 
 #print("theta",input_single[0,:,8*antenna_size+1,0])

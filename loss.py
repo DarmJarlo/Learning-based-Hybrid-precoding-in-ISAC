@@ -328,9 +328,43 @@ def tf_Output2digitalPrecoding(Output,zf_matrix):
     Real_reshaped = tf.reshape(Real, (batch_size,antenna_size, num_vehicle))
     Imag_reshaped = tf.reshape(Imag, (batch_size,antenna_size, num_vehicle))
     Digital_Matrix = tf.complex(Real_reshaped, Imag_reshaped)
-    Digital_Matrix_e = tf.transpose(zf_matrix,perm=[0,2,1]) + tf.cast(Digital_Matrix, tf.complex128)
-    return Digital_Matrix_e
+    max_power = tf.constant(config_parameter.power, dtype=tf.float32)
 
+
+    #shape(8,2)
+    magnitude_sum = tf.reduce_sum(tf.abs(Digital_Matrix), axis=[1, 2], keepdims=True)
+    adjustment_factor = max_power / magnitude_sum
+    adjustment_factor = tf.cast(adjustment_factor, tf.complex64)
+    Digital_Matrix = Digital_Matrix * adjustment_factor
+    #Digital_Matrix_e = tf.transpose(zf_matrix,perm=[0,2,1]) + tf.cast(Digital_Matrix, tf.complex128)
+    return Digital_Matrix
+def tf_Output2PrecodingMatrix_powerallocated(Output):
+    shape = tf.shape(Output)
+    batch_size = shape[0]
+
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
+    antenna_size_f = tf.cast(antenna_size, tf.float32)
+    # dont forget here we are inputing a whole batch
+    G = tf.math.sqrt(antenna_size_f)
+    #Analog_Matrix = tf.zeros((antenna_size, config_parameter.rf_size), dtype=tf.complex128)
+    #Digital_real_Matrix = tf.zeros((config_parameter.rf_size, num_vehicle))
+    #Digital_im_Matrix = tf.zeros((config_parameter.rf_size, num_vehicle))
+    #Digital_Matrix = tf.zeros((config_parameter.rf_size, num_vehicle), dtype=tf.complex128)
+    Analog_part = Output[:, 0:antenna_size * config_parameter.rf_size]
+    Analog_part_reshaped = tf.reshape(Analog_part, (batch_size,antenna_size, config_parameter.rf_size))
+    antenna_size_o = tf.cast(antenna_size, tf.float32)
+    g = tf.sqrt(antenna_size_o)
+    g= tf.cast(g, tf.complex64)
+    Analog_part_reshaped_o = tf.cast(Analog_part_reshaped, tf.complex64)
+    Analog_Matrix = g*tf.exp(1j * Analog_part_reshaped_o)
+    Power_allocated = Output[:, antenna_size * config_parameter.rf_size:antenna_size * config_parameter.rf_size + num_vehicle]
+    Power_allocated_reshaped = tf.reshape(Power_allocated, (batch_size,1, num_vehicle))
 def tf_Output2PrecodingMatrix(Output):
     shape = tf.shape(Output)
     batch_size = shape[0]
@@ -483,7 +517,7 @@ def tf_sigma_delay_square(steering_vector_h, precoding_matrix_c,beta):
     sum_other = G*(sum_all-this_sinr_b)
     this_sinr_gain = G * this_sinr_b
     #output should be(batch,num_vehicle)
-    return rou_delay* (sum_other + sigma_z)/this_sinr_gain
+    return tf.square(rou_delay)* (sum_other + sigma_z)/this_sinr_gain
 
 
 "calculation for CRB"
@@ -492,7 +526,8 @@ def tf_CRB_distance(Sigma_time_delay_2):
     crlb_d_inv = tf.divide(1.0, Sigma_time_delay_2) * tf.square(tf.divide(2.0, c))
     CRB_d = tf.divide(1.0, crlb_d_inv)
     abs_CRB_d = tf.abs(CRB_d)
-    crb_dist = tf.reduce_sum(abs_CRB_d, axis=1)
+    len = tf.shape(abs_CRB_d)[1]
+    crb_dist = tf.reduce_sum(abs_CRB_d, axis=1) / tf.cast(len, dtype=tf.float32)
     return crb_dist
 
 def tf_CRB_angle(beta,precoding_matrix,theta):

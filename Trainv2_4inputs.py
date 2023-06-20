@@ -15,15 +15,15 @@ import config_parameter
 sys.path.append("..")
 import matplotlib.pyplot as plt
 
-from network import DL_method_NN_for_v2x_mod,ResNetLSTMModel,ResNet
+from network import DL_method_NN_for_v2x_hybrid,ResNetLSTMModel,ResNet
 from config_parameter import iters
 sys.path.append("..")
 import numpy as np
 #tf.compat.v1.enable_eager_execution()
 def load_model():
 
-
-    model = ResNet()
+    model = DL_method_NN_for_v2x_hybrid()
+    #model = ResNet()
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
 
@@ -32,7 +32,7 @@ def load_model():
     model.summary()
     if config_parameter.FurtherTrain ==True:
         #model = tf.saved_model.load('Keras_models/new_model')
-        model.load_weights(filepath='Keras_models/new_model')
+        model.load_weights(filepath='Keras_models_hybrid/new_model')
     return model
 '''
 class Datastorager():
@@ -187,7 +187,7 @@ if __name__ == '__main__':
     #if gpus:
      #   for gpu in gpus:
       #      tf.config.experimental.set_memory_growth(gpu, True)
-    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.01)
+    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003)
     '''
     optimizer_1 = tf.keras.optimizers.Adagrad(
         learning_rate=0.01,
@@ -269,8 +269,8 @@ if __name__ == '__main__':
             precoding_matrix = tf.cast(precoding_matrix, tf.complex128)
             mse_value = tf.reduce_mean(tf.abs(precoding_matrix - tf.transpose(zf_matrix,perm=[0,2,1])), axis=(1,2))
             mse_value = tf.cast(mse_value, tf.float32)
-            #combined_loss = crb_combined_loss - sum_rate_this + 1e15*mse_value
-            combined_loss = 1e15*mse_value
+            combined_loss = tf.reduce_sum(crb_combined_loss - sum_rate_this,axis=0)/batch_size
+            #combined_loss = 1e15*mse_value
             #crb_loss =
             #communication_loss = tf.math.divide(1.0, sum_rate_this)
         if config_parameter.loss_mode == "Upper_sum_rate":
@@ -286,9 +286,11 @@ if __name__ == '__main__':
             tf.summary.histogram("CSIREAL", tf.math.real(CSI))
             tf.summary.scalar("Digital", Digital_matrix)
             tf.summary.scalar("Pathloss", pathloss)
-        optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
+        
         '''
-        return combined_loss,precoding_matrix,CSI,gradients,CRB_d
+        optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
+
+        return sum_rate_this,output,CSI,gradients,combined_loss
 
 
     crb_d_sum_list = []  # the crb distance sum at all timepoints in this list
@@ -316,21 +318,21 @@ if __name__ == '__main__':
         for batch in tf_dataset:
             print(tf.shape(batch))
             input_single = batch
-            communication_loss, precoding_matrix, CSI, gradients,CRB_d = train_step(input_single)
+            communication_loss, output, CSI, gradients,combined = train_step(input_single)
 
             print("Epoch: {}/{},loss: {}".format(iter + 1, config_parameter.iters,
-                                                           communication_loss
-                                                           ))
+                                                           combined.numpy()))
+
             file_path = "precoding_matrix.txt"
             with open(file_path, "w") as file:
-                file.write("crb_d")
-                file.write(str(CRB_d.numpy()) + "\n")
-                file.write("theta")
-                file.write(str(input_single[0, 0:num_vehicle, 2 * antenna_size]) + "\n")
-                file.write("distance")
-                file.write(str(input_single[0, 0:num_vehicle, 3 * antenna_size]) + "\n")
-                file.write("CSI")
-                file.write(str(CSI.numpy()) + "\n")
+                file.write("output")
+                file.write(str(output.numpy()) + "\n")
+                #file.write("theta")
+                #file.write(str(input_single[0, 0:num_vehicle, 2 * antenna_size]) + "\n")
+                #file.write("distance")
+                #file.write(str(input_single[0, 0:num_vehicle, 3 * antenna_size]) + "\n")
+                file.write("sumrate")
+                file.write(str(communication_loss.numpy()) + "\n")
                 file.write("gradients")
                 file.write(str(gradients) + "\n")
         sum_rate_list.append(communication_loss)
@@ -342,12 +344,12 @@ if __name__ == '__main__':
         plt.grid(True)
         plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='Keras_models/new_model', save_format='tf')
+        model.save_weights(filepath='Keras_models_hybrid/new_model', save_format='tf')
         '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''
         # tf.saved_model.save(model, )
-    model.save_weights(filepath='Keras_models/new_model', save_format='tf')
+    model.save_weights(filepath='Keras_models_hybrid/new_model', save_format='tf')
 
 '''
     # the sum rate at all timepoints in this list
