@@ -147,7 +147,7 @@ if __name__ == '__main__':
     for iter in range(0, config_parameter.iters):
         #iter+=500
         if iter < 500:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.002,beta_1=0.9,beta_2=0.95)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0015,beta_1=0.91,beta_2=0.95)
             #optimizer_1 = tf.keras.optimizers.SGD(learning_rate=0.003, momentum=0.9, nesterov=True)
 
         elif iter >=500:
