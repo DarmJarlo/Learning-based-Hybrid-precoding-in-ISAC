@@ -22,7 +22,7 @@ def load_model():
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
 
-    model.build(input_shape=(config_parameter.batch_size, num_vehicle,32,1))
+    model.build(input_shape=(config_parameter.batch_size, num_vehicle,40,1))
 
     model.summary()
     if config_parameter.FurtherTrain ==True:
@@ -88,12 +88,18 @@ if __name__ == '__main__':
             shape = tf.shape(input)
 
             batch_size= shape[0]
+
             #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
             #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
-            ZF_matrix = tf.complex(input[:, :, 2 * antenna_size:3 * antenna_size, 0],
-                                   input[:, :, 3 * antenna_size:4 * antenna_size, 0])
+            #ZF_matrix = tf.complex(input[:, :, 2 * antenna_size:3 * antenna_size, 0],
+             #                      input[:, :, 3 * antenna_size:4 * antenna_size, 0])
             #precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output,zf_matrix=ZF_matrix)
-            analog,digital = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+            analog_ref = input[:,0:config_parameter.rf_size,2*antenna_size:3*antenna_size,0]
+            analog_ref = tf.transpose(analog_ref,perm=[0,2,1])
+            digital_ref = tf.complex(input[:,0:config_parameter.rf_size,3*antenna_size:3*antenna_size+num_vehicle,0],\
+                                     input[:,0:config_parameter.rf_size,4*antenna_size:4*antenna_size+num_vehicle,0])
+
+            analog,digital = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,analog_ref=analog_ref,digital_ref=digital_ref)
             precoding_matrix = loss.tf_Precoding_matrix_combine(analog,digital)
             CSI = tf.complex(input[:,:,0:1*antenna_size,0], input[:,:,1*antenna_size:2*antenna_size,0])
             sum_rate_this = loss.tf_loss_sumrate(CSI, precoding_matrix)
@@ -132,7 +138,7 @@ if __name__ == '__main__':
 
     sum_rate_list = []
     angle, distance = loss.load_data()
-    input_whole = loss.Conversion2CSI(angle, distance)
+    input_whole = loss.Conversion2CSI_mod(angle, distance)
     input_whole = np.expand_dims(input_whole, axis=3)
     #normalized_data = (data - np.mean(data)) / np.std(data)
 
@@ -147,7 +153,7 @@ if __name__ == '__main__':
     for iter in range(0, config_parameter.iters):
         #iter+=500
         if iter < 500:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0015,beta_1=0.91,beta_2=0.95)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.001,beta_1=0.92,beta_2=0.95)
             #optimizer_1 = tf.keras.optimizers.SGD(learning_rate=0.003, momentum=0.9, nesterov=True)
 
         elif iter >=500:

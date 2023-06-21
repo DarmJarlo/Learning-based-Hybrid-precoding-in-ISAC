@@ -187,7 +187,7 @@ if __name__ == '__main__':
     #if gpus:
      #   for gpu in gpus:
       #      tf.config.experimental.set_memory_growth(gpu, True)
-    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003)
+    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.001)
     '''
     optimizer_1 = tf.keras.optimizers.Adagrad(
         learning_rate=0.01,
@@ -232,7 +232,8 @@ if __name__ == '__main__':
             CSI = tf.complex(input[:,:,2*antenna_size:3*antenna_size,0], input[:,:,3*antenna_size:4*antenna_size,0])
             #CSi here shape is (BATCH,NUMVEHICLE,ANTENNAS)
             zf_matrix = tf.complex(input[:,:,4*antenna_size:5*antenna_size,0], input[:,:,5*antenna_size:6*antenna_size,0])
-
+            #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output,zf_matrix=zf_matrix)
+            #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
             zf_sumrate = loss.tf_loss_sumrate(CSI,tf.transpose(zf_matrix,perm=[0,2,1]))
             #sigma_doppler = loss.tf
             #steering_hermite = tf.transpose(tf.math.conj(steering_vector_this))
@@ -269,10 +270,11 @@ if __name__ == '__main__':
             precoding_matrix = tf.cast(precoding_matrix, tf.complex128)
             mse_value = tf.reduce_mean(tf.abs(precoding_matrix - tf.transpose(zf_matrix,perm=[0,2,1])), axis=(1,2))
             mse_value = tf.cast(mse_value, tf.float32)
-            combined_loss = tf.reduce_sum(crb_combined_loss - sum_rate_this,axis=0)/batch_size
+            combined_loss = tf.reduce_sum(-(1/crb_combined_loss) -sum_rate_this,axis=0)/batch_size
             #combined_loss = 1e15*mse_value
             #crb_loss =
-            #communication_loss = tf.math.divide(1.0, sum_rate_this)
+
+        #communication_loss = #communication_loss = tf.math.divide(1.0, sum_rate_this)
         if config_parameter.loss_mode == "Upper_sum_rate":
             gradients = tape.gradient(communication_loss, model.trainable_variables)
         elif config_parameter.loss_mode == "lower_bound_crb":

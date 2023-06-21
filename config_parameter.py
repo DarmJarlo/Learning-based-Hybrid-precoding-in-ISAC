@@ -50,7 +50,7 @@ power = 30
 fading_coefficient = 10 + 10j
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
-FurtherTrain = True
+FurtherTrain = False
 
 #these are for the simulation test
 speed_low = 20
@@ -69,7 +69,7 @@ train_initial_location_max = 120
 #setup for metrics
 rf_size = 4
 antenna_size = 32
-vehicle_antenna_size = 32
+vehicle_antenna_size = 16
 receiver_antenna_size = 1
 sigma_k = 1e-10
 sigma_z = 1e-10
@@ -78,7 +78,7 @@ sigma_z = 1e-10
 #path loss parameters
 
 d0 = 10
-alpha = 10
+alpha = 1e-6 * power#path_loss alpha at reference distance d0 UNIT: dB
 #alpha = 1e-6#path_loss alpha at reference distance d0 UNIT: dB
 path_loss_exponent = -2.55
 
@@ -92,8 +92,8 @@ pulse_duration = 10e-6  # pulse duration in seconds
 R_max = 200  # maximum range in meters
 Signal_noise_power = 0.1#noise for echo signal
 sigma_rk = Signal_noise_power
-rou_timedelay = 2e-10
-rou_dopplershift = 2e-10
+rou_timedelay = 2e-9
+rou_dopplershift = 2e-9
 
 
 
