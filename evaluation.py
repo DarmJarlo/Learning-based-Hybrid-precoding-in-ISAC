@@ -2,8 +2,72 @@ import loss
 import numpy as np
 import config_parameter
 import math
+import tensorflow as tf
+from network import DL_method_NN_for_v2x_mod,DL_method_NN_for_v2x_hybrid
+
 Test = "V2V"
-def generate_input():
+Test = "V2I"
+if config_parameter.mode == "V2I":
+    antenna_size = config_parameter.antenna_size
+    num_vehicle = config_parameter.num_vehicle
+elif config_parameter.mode == "V2V":
+    antenna_size = config_parameter.vehicle_antenna_size
+    num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
+
+def load_model_hybrid():
+    #model = DL_method_NN_for_v2x_mod()
+    model =DL_method_NN_for_v2x_hybrid()
+    #model = ResNet()
+    #model = ResNetLSTMModel()
+    num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
+
+    model.build(input_shape=(config_parameter.batch_size, num_vehicle,40,1))
+
+    model.summary()
+
+    model.load_weights(filepath='Keras_models_hybrid/new_model')
+    return model
+def load_model_digital():
+    model = DL_method_NN_for_v2x_mod()
+    #model =DL_method_NN_for_v2x_hybrid()
+    #model = ResNet()
+    #model = ResNetLSTMModel()
+    num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
+
+    model.build(input_shape=(config_parameter.batch_size, num_vehicle,40,1))
+
+    model.summary()
+
+    model.load_weights(filepath='Keras_models_digital/new_model')
+    return model
+def load_model_only_communication_digital():
+    model = DL_method_NN_for_v2x_mod()
+    #model =DL_method_NN_for_v2x_hybrid()
+    #model = ResNet()
+    #model = ResNetLSTMModel()
+    num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
+
+    model.build(input_shape=(config_parameter.batch_size, num_vehicle,40,1))
+
+    model.summary()
+
+    model.load_weights(filepath='Keras_models_only_communication_digital/new_model')
+    return model
+def load_model_only_communication_hybrid():
+    #model = DL_method_NN_for_v2x_mod()
+    model =DL_method_NN_for_v2x_hybrid()
+    #model = ResNet()
+    #model = ResNetLSTMModel()
+    num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
+
+    model.build(input_shape=(config_parameter.batch_size, num_vehicle,40,1))
+
+    model.summary()
+
+    model.load_weights(filepath='Keras_models_only_communication_hybrid/new_model')
+    return model
+def generate_input_v2v():
     if config_parameter.mode == "V2I":
         antenna_size = config_parameter.antenna_size
         num_vehicle = config_parameter.num_vehicle
@@ -103,33 +167,19 @@ def generate_input():
             if real_theta[v - 1, t] == 0:
                 real_theta[v - 1, t] == 0.1
             print(real_theta[v - 1, t])
-    steering_vector_whole = np.zeros(shape=(int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1, totalnum_vehicle, antenna_size),
-                                     dtype=complex)
+    return real_distance,real_theta
+def generate_input_v2i():
 
-    for v in range(0, totalnum_vehicle):
-        for t in range(0, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1):
-            print("ssssssssssssssssssssssss", real_distance[v, t], real_theta[v, t])
-            steering_vector_whole[t, v] = loss.calculate_steer_vector_this(real_theta[v, t])
-    print("steering_vector_whole", steering_vector_whole)
-    input_whole = np.zeros(
-        shape=(int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1, totalnum_vehicle,
-               4 * antenna_size))
-    input_whole[:, :, 0:antenna_size] = np.real(steering_vector_whole)
-    input_whole[:, :, antenna_size:2 * antenna_size] = np.imag(steering_vector_whole)
-    speed_dictionary=np.zeros(shape=(
-        num_vehicle, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1))
-    speed_dictionary[:,:300]=speed_whole_dictionary[1:,]
-    for i in range(0, antenna_size):
-        input_whole[:, :, 2 * antenna_size + i] = real_theta.T
-        input_whole[:, :, 3 * antenna_size + i] = real_distance.T
-        #input_whole[:,:,4*antenna_size+i]=speed_dictionary.T
-    with open('angleanddistance', "w") as file:
-        file.write("real_theta")
-        file.write(str(real_theta) + "\n")
-        file.write("real_distance")
-        file.write(str(real_distance) + "\n")
-    return input_whole
 def eva_v2v():
+    real_distance, real_theta = generate_input_v2v()
+    combined = loss.Conversion2CSI(real_distance, real_theta)
+    # this one output the CSI and zf matrix
+    zf_matrix = tf.complex(combined[:,:,2*antenna_size:3*antenna_size],combined[:,:,3*antenna_size:4*antenna_size])
+    CSI = tf.complex(combined[:,:,0:antenna_size],combined[:,:,antenna_size:2*antenna_size])
+    precoding_matrix =
+
+
+
 
 if Test == "V2V":
     eva_v2v()
