@@ -576,6 +576,35 @@ def tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix):
     normalized_array = tf.multiply(matrix, adjustment_factor)
 
     return normalized_array
+def tf_Precoding_matrix_comb_Powerallocated(Analog_matrix,Digital_matrix,distance):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
+    max_power = tf.constant(config_parameter.power, dtype=tf.float64)
+    distance_sum = tf.reduce_sum(distance, axis=1,keepdims=True)
+    distance_sum =tf.tile(distance_sum, [1,tf.shape(distance)[1]])
+    print("distance_sum",distance_sum)
+    adjustment_power = distance * max_power / distance_sum
+    adjustment_power = tf.cast(adjustment_power, dtype=tf.float64)
+    adjustment_power = tf.expand_dims(adjustment_power, axis=1)
+    #adjustment_power = tf.tile(adjustment_power, [1, antenna_size])
+    print("adjustment_power",adjustment_power)
+    matrix = tf.matmul(Analog_matrix, Digital_matrix)
+    matrix = tf.cast(matrix, dtype=tf.complex128)
+    #shape(8,2)
+    magnitude_sum = tf.reduce_sum(tf.abs(matrix), axis=1, keepdims=True)
+    print("magnitude_sum",magnitude_sum)
+    adjustment_factor =  adjustment_power/ magnitude_sum
+    print("adjustment_factor",adjustment_factor)
+    adjustment_factor = tf.cast(adjustment_factor,dtype=tf.complex128)
+    #matrix = tf.cast(matrix, dtype=tf.complex128)
+    normalized_array = tf.multiply(matrix, adjustment_factor)
+
+    return normalized_array
 "calculation for sum rate"
 def tf_loss_sumrate(CSI, precoding_matrix):
     if config_parameter.mode == "V2I":
@@ -631,7 +660,7 @@ def tf_loss_sumrate(CSI, precoding_matrix):
     lg2 =tf.cast(tf.math.log1p(1.0),dtype=tf.float64)
     sumrate = tf.reduce_sum(tf.math.log1p(sinr)/ lg2, axis=1)
 
-    return sumrate
+    return sumrate,sinr
 
 "calculation for sigma"
 

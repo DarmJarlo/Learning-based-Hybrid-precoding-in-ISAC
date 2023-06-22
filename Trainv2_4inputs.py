@@ -55,7 +55,7 @@ if __name__ == '__main__':
     #if gpus:
      #   for gpu in gpus:
       #      tf.config.experimental.set_memory_growth(gpu, True)
-    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003,beta_1 = 0.91,beta_2 = 0.99)
+    #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003,beta_1 = 0.91,beta_2 = 0.99)
     #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.004)
     '''
     optimizer_1 = tf.keras.optimizers.Adagrad(
@@ -100,8 +100,8 @@ if __name__ == '__main__':
 
             batch_size= shape[0]
             Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
-            precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
-
+            #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
+            precoding_matrix = loss.tf_Precoding_matrix_comb_Powerallocated(Analog_matrix, Digital_matrix,distance[:,:,0])
 
 
             pathloss = loss.tf_Path_loss(input[:,:,2*antenna_size,0])
@@ -112,7 +112,7 @@ if __name__ == '__main__':
             zf_matrix = tf.complex(input[:,:,2*antenna_size:3*antenna_size,0], input[:,:,3*antenna_size:4*antenna_size,0])
             #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output,zf_matrix=zf_matrix)
             #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
-            zf_sumrate = loss.tf_loss_sumrate(CSI,tf.transpose(zf_matrix,perm=[0,2,1]))
+            zf_sumrate,zf_sinr = loss.tf_loss_sumrate(CSI,tf.transpose(zf_matrix,perm=[0,2,1]))
             #sigma_doppler = loss.tf
             #steering_hermite = tf.transpose(tf.math.conj(steering_vector_this))
 
@@ -126,12 +126,19 @@ if __name__ == '__main__':
 
 
             # steering_vector = [loss.calculate_steer_vector(predict_theta_list[v] for v in range(config_parameter.num_vehicle)
-            sum_rate_this = loss.tf_loss_sumrate(CSI, precoding_matrix)
-
+            sum_rate_this,sinr = loss.tf_loss_sumrate(CSI, precoding_matrix)
+            mean_sinr = tf.reduce_mean(sinr,axis=1,keepdims=True)
+            shape = tf.shape(sinr)
             sum_rate_this = tf.cast(sum_rate_this, tf.float32)
-            #zf_sumrate = tf.cast(zf_sumrate, tf.float32)
+            mean_sinr = tf.tile(mean_sinr,[1,shape[1]])
+            mse_sinr = tf.reduce_mean(tf.square(sinr-mean_sinr),axis=1)
+            mse_sinr = tf.cast(mse_sinr, tf.float32)
+            coeffi = tf.constant(0.05,tf.float32)
+            sum_rate_this = tf.cast(sum_rate_this, tf.float32)
+            zf_sumrate = tf.cast(zf_sumrate, tf.float32)
             batch_size = tf.cast(batch_size, tf.float32)
-            communication_loss = tf.reduce_sum(-sum_rate_this)/batch_size
+            communication_loss = tf.reduce_sum(- sum_rate_this) / batch_size
+            #communication_loss = tf.reduce_sum(mse_sinr*coeffi-sum_rate_this)/batch_size
             #communication_loss = -sum_rate_this+loss_MSE/(tf.stop_gradient(loss_MSE/(sum_rate_this)))
             #communication_loss = tf.reduce_sum(zf_sumrate-sum_rate_this)/batch_size
             #beta = tf.complex(input[:,:,6*antenna_size:7*antenna_size,0], input[:,:,7*antenna_size:8*antenna_size,0])
@@ -192,12 +199,15 @@ if __name__ == '__main__':
     #tf_dataset = tf.expand_dims(tf_dataset, axis=0)
     #dataset = tf.transpose(tf_dataset, perm=[1, 0, 2, 3])
     for iter in range(0, config_parameter.iters):
-        iter += 7
-        if iter < 7:
+        #iter += 7
+        if iter < 3:
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.002, beta_1=0.9, beta_2=0.99)
         #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003, beta_1=0.91, beta_2=0.99)
-            optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.003)
+            #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.003)
+        elif iter <6:
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.99)
         else:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0015, beta_1=0.9, beta_2=0.99)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.99)
         print(iter)
         tf_dataset = tf_dataset.shuffle(9600)
         #tf_dataset = tf_dataset.batch(config_parameter.batch_size)

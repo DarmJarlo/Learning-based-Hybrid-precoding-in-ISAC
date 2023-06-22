@@ -74,8 +74,8 @@ train_initial_location_min = 30
 train_initial_location_max = 120
 
 #setup for metrics
-rf_size = 5
-antenna_size = 32
+rf_size = 6
+antenna_size = 16
 vehicle_antenna_size = 16
 receiver_antenna_size = 1
 sigma_k = 1e-10

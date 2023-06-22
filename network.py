@@ -173,7 +173,7 @@ class DL_method_NN_for_v2x_mod(keras.Model):
         #out = self.dense_4(out)
         out = self.fc(out)
         x = self.act(out)
-        #x = tf.where(tf.math.greater(x, 0), tf.minimum(x, 5.0), tf.maximum(x, -5.0))
+        x = tf.where(tf.math.greater(x, 0), tf.minimum(x, 5.0), tf.maximum(x, -5.0))
         #out = tf.clip_by_value(out, 1e-10, 5-(1e-10))
         #Parameter = tf.clip_by_value(out,1e-10,1-1e-10)
 
@@ -199,7 +199,7 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         self.bn4 = keras.layers.BatchNormalization()
         self.conv_layer5 = Conv2D(512,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
         self.bn5 = keras.layers.BatchNormalization()
-        self.dropout3 = keras.layers.Dropout(0.35)
+        self.dropout3 = keras.layers.Dropout(0.1)
 
         self.maxpool3 = MaxPooling2D()
         self.avgpool = tf.keras.layers.GlobalAveragePooling2D()

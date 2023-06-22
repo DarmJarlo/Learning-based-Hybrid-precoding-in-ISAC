@@ -9,17 +9,17 @@ elif config_parameter.mode == "V2V":
     antenna_size = config_parameter.vehicle_antenna_size
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
 # Set the number of samples and batch size
-num_samples = 19200
+num_samples = 9600
 batch_size = 32
 
 # Generate random samples
-angles_1 = np.random.uniform(0.15*np.pi, 0.3*np.pi, size=(num_samples, 1))
-angles_2 = np.random.uniform(0.3*np.pi, 0.45*np.pi, size=(num_samples, 1))
-angles_3 = np.random.uniform(0.55*np.pi, 0.7*np.pi, size=(num_samples, 1))
-angles_4 = np.random.uniform(0.7*np.pi, 0.85*np.pi, size=(num_samples, 1))
+angles_1 = np.random.uniform(0.2*np.pi, 0.3*np.pi, size=(num_samples, 1))
+angles_2 = np.random.uniform(0.3*np.pi, 0.4*np.pi, size=(num_samples, 1))
+angles_3 = np.random.uniform(0.6*np.pi, 0.7*np.pi, size=(num_samples, 1))
+angles_4 = np.random.uniform(0.7*np.pi, 0.8*np.pi, size=(num_samples, 1))
 angles = np.concatenate((angles_1, angles_2, angles_3,angles_4), axis=1)
 distances = np.random.uniform(50, 150, size=(num_samples, num_vehicle))
-
+#angles = np.random.uniform(0.15*np.pi, 0.85*np.pi, size=(num_samples, num_vehicle))
 # Combine angles and distances into a single array
 data = np.concatenate((angles, distances), axis=1)
 

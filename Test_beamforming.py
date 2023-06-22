@@ -49,8 +49,8 @@ antenna_size_f = tf.cast(antenna_size, tf.float32)
 G = tf.math.sqrt(antenna_size_f)
 Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
 precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix=Analog_matrix, Digital_matrix=Digital_matrix)
-#print("Analog_matrix",Analog_matrix)
-#print("Digital_matrix",Digital_matrix)
+print("Analog_matrix",Analog_matrix[3])
+print("Digital_matrix",Digital_matrix[3])
 zf_precoding = tf.complex(input_single[:, :, 2 * antenna_size:3 * antenna_size, 0],
                                    input_single[:, :, 3 * antenna_size:4 * antenna_size, 0])
 #precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output, zf_matrix=zf_precoding)
@@ -76,7 +76,7 @@ CSI = tf.multiply(tf.cast(tf.multiply(G, pathloss), dtype=tf.complex128), steeri
 '''
 #sv = loss.
 idx = np.arange(antenna_size)
-angle_set = np.arange(1, 361) / 180 * np.pi
+angle_set = np.arange(1, 181) / 180 * np.pi
 Hset = np.exp(1j * np.pi * idx.reshape(-1, 1) * np.cos(angle_set))
 
 #zf_matrix = tf.complex(input_single[0,:,4*antenna_size:5*antenna_size,0], input_single[0,:,5*antenna_size:6*antenna_size,0])
@@ -92,11 +92,11 @@ precoding_matrix = precoding_matrix.numpy()
 precoding_matrix_hermite = np.transpose(np.conj(precoding_matrix))
 Hset_hermite = np.transpose(np.conj(Hset))
 
-print("precoding",precoding_matrix)
+print("precoding",precoding_matrix[3,:,:])
 #r2 = np.dot(precoding_matrix_hermite, Hset_hermite.T)
 zf_matrix = tf.transpose(zf_precoding,perm=[0,2,1])
 #r1 = np.dot(Hset.T, zf_precoding.numpy()[0].T)
-r1 = np.dot(Hset.T, precoding_matrix[4,:,:])
+r1 = np.dot(Hset.T, precoding_matrix[3,:,:])
 print("r90", r1[28:35])
 
 #r = np.dot(r1,r2)
