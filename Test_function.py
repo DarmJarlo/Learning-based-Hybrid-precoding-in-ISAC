@@ -10,6 +10,7 @@ from scipy import signal
 import tensorflow as tf
 import loss
 import matplotlib.pyplot as plt
+def Test_echo_partial():
 
 def Test_steering_vector_generation(angle,distance):
     theta = angle.T

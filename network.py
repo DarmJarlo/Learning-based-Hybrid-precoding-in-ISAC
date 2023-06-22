@@ -108,112 +108,9 @@ def make_bottleneck_layer(filter_num, blocks, stride=1):
     return res_block
 
 
-class ResNetLSTMModel(keras.Model):
-    def __init__(self):
-        super(ResNetLSTMModel, self).__init__()
-
-        act_func = "relu"
-        init = keras.initializers.GlorotNormal() #Xavier initializer
-        self.conv1 = tf.keras.layers.Conv2D(filters=64,
-                                            kernel_size=(7, 7),
-                                            strides=2,
-                                            padding="same")
-
-        self.bn1 = tf.keras.layers.BatchNormalization()
-        self.flatten = Flatten()
-        self.dense_1 = Dense(200, activation=act_func, kernel_initializer=init)
-        self.dense_2 = Dense(200, activation=act_func, kernel_initializer=init)
-        self.dense_3 = Dense(100, activation=act_func, kernel_initializer=init)
-        self.dense_4 = Dense(100, activation=act_func, kernel_initializer=init)
-        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
-        parameter_size = config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle
-
-        self.out = Dense(parameter_size,
-                         activation='softmax')  # self.fc = tf.keras.layers.Dense(units=NUM_CLASSES, activation=tf.keras.activations.softmax)
-        self.build((1, 1, num_vehicle, 32))
-    def call(self, inputs):
-        #x = self.conv1(inputs)
-        #x = self.bn1(inputs)
-        out=self.flatten(inputs)
-        out = self.dense_1(out)
-        out = self.dense_2(out)
-        out = self.dense_3(out)
-        outputs = self.out(out)
-        return outputs
-
-
-    def build_resnet_block(self, filters, kernel_size):
-        resnet_block = keras.Sequential()
-        resnet_block.add(Conv2D(filters, kernel_size, padding='same'))
-        resnet_block.add(BatchNormalization())
-        resnet_block.add(Activation('relu'))
-        resnet_block.add(Conv2D(filters, kernel_size, padding='same'))
-        resnet_block.add(BatchNormalization())
-        resnet_block.add(Add())
-        resnet_block.add(Activation('relu'))
-        return resnet_block
 
 
 
-class DL_method_NN_for_v2x(keras.Model):
-    def __init__(self,layer_params=[0,0,0,1]):
-        super().__init__()
-        self.conv1 = tf.keras.layers.Conv2D(filters=64,
-                                            kernel_size=(7, 7),
-                                            strides=2,
-                                            padding="same")
-        self.bn1 = tf.keras.layers.BatchNormalization()
-        self.pool1 = tf.keras.layers.MaxPool2D(pool_size=(3, 3),
-                                               strides=2,
-                                               padding="same")
-
-        self.layer1 = make_bottleneck_layer(filter_num=64,
-                                            blocks=layer_params[0])
-        self.layer2 = make_bottleneck_layer(filter_num=128,
-                                            blocks=layer_params[1],
-                                            stride=2)
-        self.layer3 = make_bottleneck_layer(filter_num=256,
-                                            blocks=layer_params[2],
-                                            stride=2)
-        self.layer4 = make_bottleneck_layer(filter_num=512,
-                                            blocks=layer_params[3],
-                                            stride=2)
-
-        self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
-        #print(self.avgpool.shape)
-        #self.avgpool = tf.reshape(self.avgpool,(1,1,2048))
-        self.lstm1= LSTM(64)
-        #self.concat =Concatenate()
-        # self.fc2 = tf.keras.layers.Dense(units=128, activation=tf.keras.activations.softmax)
-        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
-        #parameter_size = config_parameter.rf_size * config_parameter.vehicle_antenna_size + 2 * config_parameter.rf_size * num_vehicle
-        parameter_size = 2 * config_parameter.vehicle_antenna_size * num_vehicle
-        #self.out = Dense(parameter_size, activation='softmax', kernel_initializer=init)
-
-        self.out = Dense(parameter_size, activation='softmax')#self.fc = tf.keras.layers.Dense(units=NUM_CLASSES, activation=tf.keras.activations.softmax)
-
-
-    def call(self, inputs, training=None, mask=None):
-        x = self.conv1(inputs)
-        x = self.bn1(x, training=training)
-        x = tf.nn.relu(x)
-        x = self.pool1(x)
-        feature1 = self.layer1(x, training=training)
-        feature2 = self.layer2(feature1, training=training)
-        feature3 = self.layer3(feature2, training=training)
-        out = self.layer4(feature3, training=training)
-
-        out = self.avgpool(out)
-        out = tf.reshape(out,(1,1,2048))
-        out =self.lstm1(out)
-        #out3 = self.concat
-        out = self.out(out)
-        # output1= self.fc2(output2)
-        # print('PPPPPPPPPPPP',output1.shape) #shape 128x2048
-
-        Parameter = tf.clip_by_value(out,1e-10,1-1e-10)
-        # output = output/sum(output)
-        return Parameter
 class DL_method_NN_for_v2x_mod(keras.Model):
     def __init__(self):
         super().__init__()
@@ -225,7 +122,7 @@ class DL_method_NN_for_v2x_mod(keras.Model):
         self.bn1 = keras.layers.BatchNormalization()
         self.maxpool1 = MaxPooling2D()
         self.conv_layer2 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
-        self.dropout2 = keras.layers.Dropout(0.05)
+        self.dropout2 = keras.layers.Dropout(0.2)
         self.bn2 = keras.layers.BatchNormalization()
         self.maxpool2 = MaxPooling2D()
         self.conv_layer3 = Conv2D(128, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
@@ -257,7 +154,7 @@ class DL_method_NN_for_v2x_mod(keras.Model):
         #out = self.maxpool1(out)
         out = self.bn1(out)
         out = self.conv_layer2(out)
-        #out= self.dropout2(out)
+        out= self.dropout2(out)
         #out = self.maxpool2(out)
         out = self.bn2(out)
         out = self.conv_layer3(out)
@@ -276,7 +173,7 @@ class DL_method_NN_for_v2x_mod(keras.Model):
         #out = self.dense_4(out)
         out = self.fc(out)
         x = self.act(out)
-        x = tf.where(tf.math.greater(x, 0), tf.minimum(x, 5.0), tf.maximum(x, -5.0))
+        #x = tf.where(tf.math.greater(x, 0), tf.minimum(x, 5.0), tf.maximum(x, -5.0))
         #out = tf.clip_by_value(out, 1e-10, 5-(1e-10))
         #Parameter = tf.clip_by_value(out,1e-10,1-1e-10)
 
@@ -302,7 +199,7 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         self.bn4 = keras.layers.BatchNormalization()
         self.conv_layer5 = Conv2D(512,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
         self.bn5 = keras.layers.BatchNormalization()
-        self.dropout3 = keras.layers.Dropout(0.1)
+        self.dropout3 = keras.layers.Dropout(0.35)
 
         self.maxpool3 = MaxPooling2D()
         self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
@@ -327,7 +224,7 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         #out = self.maxpool1(out)
         out = self.bn1(out)
         out = self.conv_layer2(out)
-        #out= self.dropout2(out)
+        out= self.dropout2(out)
         #out = self.maxpool2(out)
         out = self.bn2(out)
         out = self.conv_layer3(out)

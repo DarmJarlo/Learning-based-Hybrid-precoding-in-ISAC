@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 
 mode = "V2V"
 #mode = "V2I"
@@ -6,7 +6,7 @@ mode = "V2V"
 #imagine the vertical distance between RSU and highway is 20
 
 iters = 1000
-one_iter_period = 30#s
+one_iter_period = 1#s
 train_data_period = 1 #s
 num_vehicle =  5
 batch_size = 32
@@ -18,7 +18,7 @@ matched_filtering_gain =10
 num_uppercar =2
 num_lowercar =2
 num_horizoncar = 0
-observer_car_init_loca = numpy.array([0,0])
+observer_car_init_loca = np.array([0,0])
 Initial_uppercar1_min = 50
 Initial_uppercar1_max = 60
 Initial_uppercar2_min = -20
@@ -40,7 +40,7 @@ horizonspeed_high = 21
 
 
 highway_length = 540
-RSU_location = numpy.array([270,-20])
+RSU_location = np.array([270,-20])
 Initial_location_min = 50
 Initial_location_max = 100
 Radar_measure_slot = 0.1 #s
@@ -56,8 +56,15 @@ FurtherTrain = False
 speed_low = 20
 speed_high = 21
 
-Initial_location_min = 50
-Initial_location_max = 100
+Initial_location_min = np.array([45,-5,50])
+Initial_location_max = np.array([50,5,-50])
+Initial_uppercar_y = 90
+Initial_lowercar_y = 80
+#Initial_location1_min = 100*np.sin(0.4*np.pi)
+#Initial_location1_min = 100*np.cos(0.3*np.pi)
+#print(Initial_location1_min)#58
+#Initial_location1_max = 100*np.cos(0.35*np.pi)
+#print(Initial_location1_max)45
 
 
 
@@ -67,7 +74,7 @@ train_initial_location_min = 30
 train_initial_location_max = 120
 
 #setup for metrics
-rf_size = 4
+rf_size = 5
 antenna_size = 32
 vehicle_antenna_size = 16
 receiver_antenna_size = 1
@@ -78,7 +85,7 @@ sigma_z = 1e-10
 #path loss parameters
 
 d0 = 10
-alpha = 1e-6 * power#path_loss alpha at reference distance d0 UNIT: dB
+alpha = 1e-6#path_loss alpha at reference distance d0 UNIT: dB
 #alpha = 1e-6#path_loss alpha at reference distance d0 UNIT: dB
 path_loss_exponent = -2.55
 

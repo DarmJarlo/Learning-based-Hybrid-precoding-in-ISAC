@@ -15,7 +15,7 @@ import config_parameter
 sys.path.append("..")
 import matplotlib.pyplot as plt
 
-from network import DL_method_NN_for_v2x_hybrid,ResNetLSTMModel,ResNet
+from network import DL_method_NN_for_v2x_hybrid,DL_method_NN_for_v2x_mod
 from config_parameter import iters
 sys.path.append("..")
 import numpy as np
@@ -27,146 +27,14 @@ def load_model():
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
 
-    model.build(input_shape=(config_parameter.batch_size, num_vehicle,80,1))
+    model.build(input_shape=(config_parameter.batch_size, num_vehicle,48,1))
 
     model.summary()
     if config_parameter.FurtherTrain ==True:
         #model = tf.saved_model.load('Keras_models/new_model')
         model.load_weights(filepath='Keras_models_hybrid/new_model')
     return model
-'''
-class Datastorager():
-    def __init__(self):
-        self.output = None
-        self.analog_precoding = None
-        self.G = None
-'''
-def generate_input():
-    if config_parameter.mode == "V2I":
-        antenna_size = config_parameter.antenna_size
-        num_vehicle = config_parameter.num_vehicle
-    elif config_parameter.mode == "V2V":
-        antenna_size = config_parameter.vehicle_antenna_size
-        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
-    speed_own_dictionary = np.zeros(shape=(
-        1, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)))
-    speed_upper_car_dictionary = np.zeros(shape=(
-        config_parameter.num_uppercar,
-        int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)))
-    real_location_uppercar_x = np.zeros(shape=(
-        config_parameter.num_uppercar,
-        int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)))
 
-    speed_lower_car_dictionary = np.zeros(shape=(
-        config_parameter.num_lowercar,
-        int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)))
-    real_location_lowercar_x = np.zeros(shape=(
-        config_parameter.num_lowercar,
-        int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)))
-    # speed_horizon_car_dictionary = np.zeros(shape=(
-    #   config_parameter.num_horizoncar,
-    #  int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)))
-    # real_location_horizoncar_x = np.zeros(shape=(
-    #   config_parameter.num_horizoncar,
-    #  int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)))
-    # real location at every timepoint
-    # this one doesn't include the initial location
-    # real angle at every timepoint in this iter
-    totalnum_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
-    real_theta = np.zeros(shape=(
-        totalnum_vehicle, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)))
-
-    speed_own_dictionary = np.random.uniform(config_parameter.horizonspeed_low,
-                                             config_parameter.horizonspeed_high,
-                                             size=speed_own_dictionary.shape)
-    # speed_horizon_car_dictionary = np.random.uniform(config_parameter.horizonspeed_low,
-    #                                                config_parameter.horizonspeed_high,
-    #                                               size=speed_horizon_car_dictionary.shape)
-    speed_lower_car_dictionary = np.random.uniform(config_parameter.lowerspeed_low,
-                                                   config_parameter.lowerspeed_high,
-                                                   size=speed_lower_car_dictionary.shape)
-    speed_upper_car_dictionary = np.random.uniform(config_parameter.upperspeed_low,
-                                                   config_parameter.upperspeed_high,
-                                                   size=speed_upper_car_dictionary.shape)
-    # speed_whole_dictionary = np.vstack((speed_own_dictionary, speed_lower_car_dictionary,
-    #                                   speed_upper_car_dictionary, speed_horizon_car_dictionary))
-    speed_whole_dictionary = np.vstack((speed_own_dictionary, speed_lower_car_dictionary,
-                                        speed_upper_car_dictionary))
-    print(speed_whole_dictionary.shape)
-    num_whole = totalnum_vehicle + 1  # 1 is the observer
-    initial_car_x = np.zeros(shape=(num_whole, 1))
-    initial_car_x[0, 0] = 0
-    location_car_y = np.zeros(
-        shape=(num_whole, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1))
-    location_car_y[0, :] = np.full(
-        (1, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1), 0)
-
-    # initial_car_x[1, 0] = np.random.uniform(config_parameter.Initial_horizoncar1_min,
-    #                                       config_parameter.Initial_horizoncar1_max)
-    # location_car_y[1, :] = np.full(
-    #   (1, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1), 0)
-    initial_car_x[1, 0] = np.random.uniform(config_parameter.Initial_lowercar1_min,
-                                            config_parameter.Initial_lowercar1_max)
-    location_car_y[1, :] = np.full(
-        (1, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1), -50)
-    initial_car_x[2, 0] = np.random.uniform(config_parameter.Initial_uppercar1_min,
-                                            config_parameter.Initial_uppercar1_max)
-    location_car_y[2, :] = np.full(
-        (1, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1), 50)
-    # initial_car_x[4,0]=np.random.uniform(config_parameter.Initial_lowercar2_min, config_parameter.Initial_lowercar2_max)
-    # initial_car_x[5, 0] = np.random.uniform(config_parameter.Initial_uppercar2_min,
-    # config_parameter.Initial_uppercar2_max)
-
-    location_car_x = np.zeros(shape=(
-        num_whole, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1))
-    coordinates_car = np.zeros(shape=(
-        num_whole, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1))
-    location_car_x[:, 0] = initial_car_x[:, :].reshape((num_vehicle + 1,))
-    real_distance = np.zeros(shape=(
-        totalnum_vehicle, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1))
-    real_theta = np.zeros(shape=(
-        totalnum_vehicle, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1))
-
-    for v in range(num_whole):
-        for t in range(int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot)):
-            location_car_x[v, t + 1] = location_car_x[v, t] + speed_whole_dictionary[
-                v, t] * config_parameter.Radar_measure_slot
-
-    for v in range(1, num_whole):
-        for t in range(int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1):
-            real_distance[v - 1, t] = math.sqrt((location_car_x[0, t] - location_car_x[v, t]) ** 2 + (
-                    location_car_y[0, t] - location_car_y[v, t]) ** 2)
-            real_theta[v - 1, t] = math.atan2(location_car_y[v, t] - location_car_y[0, t],
-                                              location_car_x[v, t] - location_car_x[0, t])
-            if real_theta[v - 1, t] == 0:
-                real_theta[v - 1, t] == 0.1
-            print(real_theta[v - 1, t])
-    steering_vector_whole = np.zeros(shape=(int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1, totalnum_vehicle, antenna_size),
-                                     dtype=complex)
-
-    for v in range(0, totalnum_vehicle):
-        for t in range(0, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1):
-            print("ssssssssssssssssssssssss", real_distance[v, t], real_theta[v, t])
-            steering_vector_whole[t, v] = loss.calculate_steer_vector_this(real_theta[v, t])
-    print("steering_vector_whole", steering_vector_whole)
-    input_whole = np.zeros(
-        shape=(int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1, totalnum_vehicle,
-               4 * antenna_size))
-    input_whole[:, :, 0:antenna_size] = np.real(steering_vector_whole)
-    input_whole[:, :, antenna_size:2 * antenna_size] = np.imag(steering_vector_whole)
-    speed_dictionary=np.zeros(shape=(
-        num_vehicle, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1))
-    speed_dictionary[:,:300]=speed_whole_dictionary[1:,]
-    for i in range(0, antenna_size):
-        input_whole[:, :, 2 * antenna_size + i] = real_theta.T
-        input_whole[:, :, 3 * antenna_size + i] = real_distance.T
-        #input_whole[:,:,4*antenna_size+i]=speed_dictionary.T
-    with open('angleanddistance', "w") as file:
-        file.write("real_theta")
-        file.write(str(real_theta) + "\n")
-        file.write("real_distance")
-        file.write(str(real_distance) + "\n")
-    return input_whole
 
 if __name__ == '__main__':
     writer = tf.summary.create_file_writer("log.txt")
@@ -187,7 +55,8 @@ if __name__ == '__main__':
     #if gpus:
      #   for gpu in gpus:
       #      tf.config.experimental.set_memory_growth(gpu, True)
-    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.001)
+    optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003,beta_1 = 0.91,beta_2 = 0.99)
+    #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.004)
     '''
     optimizer_1 = tf.keras.optimizers.Adagrad(
         learning_rate=0.01,
@@ -211,11 +80,19 @@ if __name__ == '__main__':
                 num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
 
             output = model(input)
+            distance = input[:, :, 5 * antenna_size:6*antenna_size, 0]
+            theta = input[:,:, 4 * antenna_size, 0]
+            steering_vector_this_o = tf.complex(input[:, :, 0:antenna_size, 0],
+                                                input[:, :, antenna_size:2 * antenna_size, 0])
+            #steering_vector_this = tf.transpose(steering_vector_this_o, perm=[0, 2, 1])
+            pathloss = loss.tf_Path_loss(distance*100)
+            beta = loss.Reflection_coefficient(distance*100)
 
             num_vehicle_f = tf.cast(num_vehicle, tf.float32)
             antenna_size_f = tf.cast(antenna_size,tf.float32)
             # dont forget here we are inputing a whole batch
             G =tf.math.sqrt(antenna_size_f)
+            CSI = tf.multiply(tf.cast(tf.multiply(G, pathloss),dtype=tf.complex128), steering_vector_this_o)
 
 
 
@@ -226,12 +103,13 @@ if __name__ == '__main__':
             precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
 
 
-            steering_vector_this_o = tf.complex(input[:,:,0:antenna_size,0], input[:,:,antenna_size:2*antenna_size,0])
+
+            pathloss = loss.tf_Path_loss(input[:,:,2*antenna_size,0])
             #below is the real right steering vector
             steering_vector_this = tf.transpose(steering_vector_this_o, perm=[0, 2, 1])
-            CSI = tf.complex(input[:,:,2*antenna_size:3*antenna_size,0], input[:,:,3*antenna_size:4*antenna_size,0])
+            #CSI = tf.complex(input[:,:,2*antenna_size:3*antenna_size,0], input[:,:,3*antenna_size:4*antenna_size,0])
             #CSi here shape is (BATCH,NUMVEHICLE,ANTENNAS)
-            zf_matrix = tf.complex(input[:,:,4*antenna_size:5*antenna_size,0], input[:,:,5*antenna_size:6*antenna_size,0])
+            zf_matrix = tf.complex(input[:,:,2*antenna_size:3*antenna_size,0], input[:,:,3*antenna_size:4*antenna_size,0])
             #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output,zf_matrix=zf_matrix)
             #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
             zf_sumrate = loss.tf_loss_sumrate(CSI,tf.transpose(zf_matrix,perm=[0,2,1]))
@@ -253,23 +131,23 @@ if __name__ == '__main__':
             sum_rate_this = tf.cast(sum_rate_this, tf.float32)
             #zf_sumrate = tf.cast(zf_sumrate, tf.float32)
             batch_size = tf.cast(batch_size, tf.float32)
-            communication_loss = -sum_rate_this
+            communication_loss = tf.reduce_sum(-sum_rate_this)/batch_size
             #communication_loss = -sum_rate_this+loss_MSE/(tf.stop_gradient(loss_MSE/(sum_rate_this)))
             #communication_loss = tf.reduce_sum(zf_sumrate-sum_rate_this)/batch_size
-            beta = tf.complex(input[:,:,6*antenna_size:7*antenna_size,0], input[:,:,7*antenna_size:8*antenna_size,0])
+            #beta = tf.complex(input[:,:,6*antenna_size:7*antenna_size,0], input[:,:,7*antenna_size:8*antenna_size,0])
 
             Sigma_time_delay = loss.tf_sigma_delay_square(steering_vector_this_o,precoding_matrix,beta)
             #Sigma_doppler = loss.tf_sigma_doppler_square(steering_vector_this,precoding_matrix,beta)
             CRB_d = loss.tf_CRB_distance(Sigma_time_delay)
-            theta = tf.reduce_mean(input[:,:,8*antenna_size:9*antenna_size,0])
+            CRB_d = 0.1
+            #theta = tf.reduce_mean(input[:,:,8*antenna_size:9*antenna_size,0])
             CRB_angle =0
             #CRB_angle = loss.tf_CRB_angle(beta,precoding_matrix,theta)
             crb_combined_loss = CRB_d*1 +CRB_angle*10e3
             #CRB_d = loss.tf_CRB_distance()
             #communication_loss = communication_loss/input.shape[0]
             precoding_matrix = tf.cast(precoding_matrix, tf.complex128)
-            mse_value = tf.reduce_mean(tf.abs(precoding_matrix - tf.transpose(zf_matrix,perm=[0,2,1])), axis=(1,2))
-            mse_value = tf.cast(mse_value, tf.float32)
+            crb_combined_loss = tf.cast(crb_combined_loss, tf.float32)
             combined_loss = tf.reduce_sum(-(1/crb_combined_loss) -sum_rate_this,axis=0)/batch_size
             #combined_loss = 1e15*mse_value
             #crb_loss =
@@ -292,7 +170,7 @@ if __name__ == '__main__':
         '''
         optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
 
-        return sum_rate_this,output,CSI,gradients,combined_loss
+        return communication_loss,output,CSI,gradients,CRB_d
 
 
     crb_d_sum_list = []  # the crb distance sum at all timepoints in this list
@@ -301,7 +179,7 @@ if __name__ == '__main__':
     sum_rate_list_reciprocal = []  # the sum rate at all timepoints in this list
     sum_rate_list = []
     angle, distance = loss.load_data()
-    input_whole = loss.Conversion2input(angle, distance)
+    input_whole = loss.Conversion2input_small(angle, distance)
     input_whole = np.expand_dims(input_whole, axis=3)
     #normalized_data = (data - np.mean(data)) / np.std(data)
 
@@ -314,8 +192,14 @@ if __name__ == '__main__':
     #tf_dataset = tf.expand_dims(tf_dataset, axis=0)
     #dataset = tf.transpose(tf_dataset, perm=[1, 0, 2, 3])
     for iter in range(0, config_parameter.iters):
+        iter += 7
+        if iter < 7:
+        #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003, beta_1=0.91, beta_2=0.99)
+            optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.003)
+        else:
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0015, beta_1=0.9, beta_2=0.99)
         print(iter)
-        tf_dataset = tf_dataset.shuffle(3200)
+        tf_dataset = tf_dataset.shuffle(9600)
         #tf_dataset = tf_dataset.batch(config_parameter.batch_size)
         for batch in tf_dataset:
             print(tf.shape(batch))
@@ -323,12 +207,15 @@ if __name__ == '__main__':
             communication_loss, output, CSI, gradients,combined = train_step(input_single)
 
             print("Epoch: {}/{},loss: {}".format(iter + 1, config_parameter.iters,
-                                                           combined.numpy()))
+                                                           communication_loss.numpy()))
 
             file_path = "precoding_matrix.txt"
-            with open(file_path, "w") as file:
+            with open(file_path, "a") as file:
                 file.write("output")
                 file.write(str(output.numpy()) + "\n")
+                file.write("CRB_d")
+                file.write(str(combined.numpy()) + "\n")
+                #file.write()
                 #file.write("theta")
                 #file.write(str(input_single[0, 0:num_vehicle, 2 * antenna_size]) + "\n")
                 #file.write("distance")
@@ -340,9 +227,9 @@ if __name__ == '__main__':
         sum_rate_list.append(communication_loss)
         timestep = list(range(1, len(sum_rate_list) + 1))
         plt.plot(timestep, sum_rate_list, 'b-o')
-        plt.xlabel('Timestep')
+        plt.xlabel('Epoch')
         plt.ylabel('Loss')
-        plt.title('Loss vs Timestep')
+        plt.title('Loss vs Epoch')
         plt.grid(True)
         plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')

@@ -4,7 +4,7 @@ import config_parameter
 import loss
 import loss_all
 import tensorflow as tf
-from Trainv2_4inputs import load_model, generate_input
+from Trainv2_4inputs import load_model
 import OnlyCommunication
 
 def translate_precoding_matrix(matrix):
@@ -23,7 +23,7 @@ def translate_precoding_matrix(matrix):
     return translated_matrix
 import math
 model = OnlyCommunication.load_model()
-model.load_weights(filepath='Keras_models/new_model')
+model.load_weights(filepath='Keras_models_hybrid/new_model')
 if config_parameter.mode == "V2I":
     antnna_size = config_parameter.antenna_size
     num_vehicle = config_parameter.num_vehicle
@@ -96,7 +96,7 @@ print("precoding",precoding_matrix)
 #r2 = np.dot(precoding_matrix_hermite, Hset_hermite.T)
 zf_matrix = tf.transpose(zf_precoding,perm=[0,2,1])
 #r1 = np.dot(Hset.T, zf_precoding.numpy()[0].T)
-r1 = np.dot(Hset.T, precoding_matrix[1,:,:])
+r1 = np.dot(Hset.T, precoding_matrix[4,:,:])
 print("r90", r1[28:35])
 
 #r = np.dot(r1,r2)

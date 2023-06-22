@@ -10,7 +10,7 @@ import config_parameter
 sys.path.append("..")
 import matplotlib.pyplot as plt
 
-from network import DL_method_NN_for_v2x_mod,ResNetLSTMModel,ResNet,DL_method_NN_for_v2x_hybrid
+from network import DL_method_NN_for_v2x_mod,ResNet,DL_method_NN_for_v2x_hybrid
 from config_parameter import iters
 sys.path.append("..")
 import numpy as np
@@ -99,7 +99,9 @@ if __name__ == '__main__':
             digital_ref = tf.complex(input[:,0:config_parameter.rf_size,3*antenna_size:3*antenna_size+num_vehicle,0],\
                                      input[:,0:config_parameter.rf_size,4*antenna_size:4*antenna_size+num_vehicle,0])
 
-            analog,digital = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,analog_ref=analog_ref,digital_ref=digital_ref)
+
+            #analog,digital = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,analog_ref=analog_ref,digital_ref=digital_ref)
+
             precoding_matrix = loss.tf_Precoding_matrix_combine(analog,digital)
             CSI = tf.complex(input[:,:,0:1*antenna_size,0], input[:,:,1*antenna_size:2*antenna_size,0])
             sum_rate_this = loss.tf_loss_sumrate(CSI, precoding_matrix)
