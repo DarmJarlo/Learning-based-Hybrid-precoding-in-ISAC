@@ -50,7 +50,7 @@ power = 30
 fading_coefficient = 10 + 10j
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
-FurtherTrain = False
+FurtherTrain = True
 
 #these are for the simulation test
 speed_low = 20
@@ -105,9 +105,9 @@ rou_dopplershift = 2e-9
 
 
 
-loss_mode = "Upper_sum_rate"   # three mode
+#loss_mode = "Upper_sum_rate"   # three mode
 #loss_mode = "lower_bound_crb"
-#loss_mode = "combined_loss"
+loss_mode = "combined_loss"
 
 
 #below are the parameter for v2v

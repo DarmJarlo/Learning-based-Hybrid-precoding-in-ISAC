@@ -81,12 +81,14 @@ if __name__ == '__main__':
 
             output = model(input)
             distance = input[:, :, 5 * antenna_size:6*antenna_size, 0]
+            distance = tf.multiply(distance, 100)
+            distance = tf.cast(distance, tf.float64)
             theta = input[:,:, 4 * antenna_size, 0]
             steering_vector_this_o = tf.complex(input[:, :, 0:antenna_size, 0],
                                                 input[:, :, antenna_size:2 * antenna_size, 0])
             #steering_vector_this = tf.transpose(steering_vector_this_o, perm=[0, 2, 1])
-            pathloss = loss.tf_Path_loss(distance*100)
-            beta = loss.Reflection_coefficient(distance*100)
+            pathloss = loss.tf_Path_loss(distance)
+            beta = loss.Reflection_coefficient(distance)
 
             num_vehicle_f = tf.cast(num_vehicle, tf.float32)
             antenna_size_f = tf.cast(antenna_size,tf.float32)
@@ -146,7 +148,7 @@ if __name__ == '__main__':
             Sigma_time_delay = loss.tf_sigma_delay_square(steering_vector_this_o,precoding_matrix,beta)
             #Sigma_doppler = loss.tf_sigma_doppler_square(steering_vector_this,precoding_matrix,beta)
             CRB_d = loss.tf_CRB_distance(Sigma_time_delay)
-            CRB_d = 0.1
+            #CRB_d = 0.1
             #theta = tf.reduce_mean(input[:,:,8*antenna_size:9*antenna_size,0])
             CRB_angle =0
             #CRB_angle = loss.tf_CRB_angle(beta,precoding_matrix,theta)
@@ -177,7 +179,7 @@ if __name__ == '__main__':
         '''
         optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
 
-        return communication_loss,output,CSI,gradients,CRB_d
+        return crb_combined_loss,output,CSI,gradients,CRB_d
 
 
     crb_d_sum_list = []  # the crb distance sum at all timepoints in this list
@@ -207,7 +209,7 @@ if __name__ == '__main__':
         elif iter <6:
             optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.99)
         else:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.99)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0003, beta_1=0.9, beta_2=0.99)
         print(iter)
         tf_dataset = tf_dataset.shuffle(9600)
         #tf_dataset = tf_dataset.batch(config_parameter.batch_size)
