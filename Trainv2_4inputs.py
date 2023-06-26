@@ -27,7 +27,7 @@ def load_model():
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
 
-    model.build(input_shape=(config_parameter.batch_size, num_vehicle,48,1))
+    model.build(input_shape=(config_parameter.batch_size, num_vehicle,112,1))
 
     model.summary()
     if config_parameter.FurtherTrain ==True:

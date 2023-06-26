@@ -52,13 +52,15 @@ def svd_csi(CSI):
 
     U, s, Vh = np.linalg.svd(CSI, full_matrices=False)
     num_rf = config_parameter.rf_size
-    print("VH",Vh.shape)
+    #print("VH",Vh.shape)
     analog_part = Vh[:num_rf,:]
 
-    print("analog_part",analog_part.shape)
-    analog_part = complex_matrix_to_polar(analog_part)
+    #print("analog_part",analog_part)
+    #analog_part = complex_matrix_to_polar(analog_part)
+    analog_part = np.angle(analog_part)
+    #print("analog_part",analog_part)
     CSI_h = np.transpose(CSI.conj())
-    print("CSI_h",CSI_h.shape)
+    #print("CSI_h",CSI_h.shape)
     digital_part = np.dot(analog_part,CSI_h)
     #digital_part = np.transpose(digital_part.conj()) #not right here
     return analog_part.T,digital_part
@@ -83,7 +85,7 @@ def svd_zf(zf_matrix):
     #digital_part = Sigma_prime[:num_rf, :] @ Vh_prime  # 得到（5,4）的矩阵C
     analog_precoder = complex_matrix_to_polar(analog_part)
     analog_rad = np.angle(analog_part)
-    print("analog_rad",analog_rad.shape)
+    print("analog_rad",analog_rad)
     digital_precoder = np.matmul(np.transpose(analog_rad.conj()),zf_matrix)
     print("digital_precoder",digital_precoder.shape)
     #digital_precoder = complex_matrix_to_polar(digital_part)
