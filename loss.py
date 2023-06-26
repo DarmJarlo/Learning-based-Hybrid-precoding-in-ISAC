@@ -28,7 +28,26 @@ def complex_matrix_to_polar(matrix):
             polar_matrix[i, j] = np.exp(1j * angle)
 
     return polar_matrix
+def random_beamforming():
+    batch_size = config_parameter.batch_size
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+    real_part = tf.random.uniform(shape=(batch_size,antenna_size, num_vehicle))
+    imag_part = tf.random.uniform(shape=(batch_size,antenna_size, num_vehicle))
+    max_power = tf.constant(config_parameter.power, dtype=tf.float32)
+    # 将实部和虚部组合成复数矩阵
+    complex_matrix = tf.complex(real_part, imag_part)
 
+    # 计算所有元素的绝对值之和
+    abs_sum = tf.reduce_sum(tf.abs(complex_matrix), axis=(1, 2))
+    factor = tf.cast(max_power/abs_sum, dtype=tf.complex64)
+    # 根据最大的绝对值之和进行缩放
+    scaled_matrix = tf.multiply(complex_matrix,factor[:, tf.newaxis, tf.newaxis])
+    return scaled_matrix
 def svd_csi(CSI):
 
     U, s, Vh = np.linalg.svd(CSI, full_matrices=False)
@@ -177,12 +196,54 @@ def Conversion2input_small(angle,distance):
     input_whole[:,:,1*antenna_size:2*antenna_size] = np.imag(np.conjugate(steering_vector))
     input_whole[:,:,2*antenna_size:3*antenna_size] = np.real(zf_matrix)
     input_whole[:, :, 3 * antenna_size:4 * antenna_size] = np.imag(zf_matrix)
+
     for i in range(0, antenna_size):
         input_whole[:, :, 4 * antenna_size + i] = theta.T
         input_whole[:, :, 5 * antenna_size + i] = (real_distance/100).T
 
     return input_whole
+def Conversion2input_small2(angle,distance):
+    theta = angle.T
+    real_distance = distance.T
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+    num_sample = theta.shape[1]
+    steering_vector = np.zeros((num_sample,num_vehicle,antenna_size,),dtype=complex)
+    pathloss = np.zeros((num_sample,num_vehicle,antenna_size))
+    zf_matrix = np.zeros((num_sample,num_vehicle,antenna_size),dtype=complex)
 
+
+
+    for i in range(antenna_size):
+        for j in range(num_vehicle):
+            for m in range(num_sample):
+                steering_vector[m][j][i] = np.exp(-1j*np.pi*i*np.cos(theta[j][m]))
+
+                #attention this steering_vector is the transposed steering vector
+                pathloss[m][j][i] = Path_loss(real_distance[j,m])
+
+    CSI_o = np.multiply(pathloss, np.conjugate(steering_vector))
+    CSI = sqrt(antenna_size) * CSI_o
+    for n in range(num_sample):
+
+        zf_matrix[n,:,:] = zero_forcing(CSI[n,:,:]).T
+        analog_rad,digital_part =svd_csi(CSI[n,:,:])
+    input_whole = np.zeros(shape=(num_sample, num_vehicle,
+               7 * antenna_size))
+    input_whole[:,:,0:1*antenna_size] = np.real(np.conjugate(steering_vector))
+    input_whole[:,:,1*antenna_size:2*antenna_size] = np.imag(np.conjugate(steering_vector))
+    input_whole[:,0:config_parameter.rf_size,6*antenna_size:7*antenna_size] = np.transpose(analog_rad,axes=(0,2,1))
+    input_whole[:,0:config_parameter.rf_size,3*antenna_size:3*antenna_size+num_vehicle] = np.transpose(np.real(digital_part),axes=(0,2,1))
+    input_whole[:,0:config_parameter.rf_size,4*antenna_size:4*antenna_size+num_vehicle] = np.transpose(np.imag(digital_part),axes=(0,2,1))
+    for i in range(0, antenna_size):
+        input_whole[:, :, 4 * antenna_size + i] = theta.T
+        input_whole[:, :, 5 * antenna_size + i] = (real_distance/100).T
+
+    return input_whole
 def Conversion2input(angle,distance):
     theta = angle.T
     real_distance = distance.T
@@ -605,6 +666,10 @@ def tf_Precoding_matrix_comb_Powerallocated(Analog_matrix,Digital_matrix,distanc
     normalized_array = tf.multiply(matrix, adjustment_factor)
 
     return normalized_array
+def tf_Precoding_comb_no_powerconstarint(Analog_matrix, Digital_matrix):
+    matrix = tf.matmul(Analog_matrix, Digital_matrix)
+    matrix = tf.cast(matrix, dtype=tf.complex128)
+    return matrix
 "calculation for sum rate"
 def tf_loss_sumrate(CSI, precoding_matrix):
     if config_parameter.mode == "V2I":
@@ -680,30 +745,44 @@ def tf_sigma_delay_square(steering_vector_h, precoding_matrix_c,beta):
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
     G = tf.constant(antenna_size, dtype=tf.float32)
 
-    this_sinr = tf.linalg.diag_part(
-        tf.square(
-            tf.math.abs(
-                tf.matmul(steering_vector_h, precoding_matrix)
-            )
-        ),
-    )
-    print("shape",this_sinr)
-    print("beta",beta_c)
-    this_sinr_b = tf.multiply(tf.square(tf.abs(tf.reduce_mean(beta_c,axis=2))),this_sinr)
-    beta_n = tf.cast(tf.transpose(tf.square(tf.abs(beta_c)), perm=[0, 2, 1]), dtype=tf.complex64)
-    precoding_withB = tf.multiply(beta_n,precoding_matrix)
-    sum_all = tf.reduce_sum(
+    #this_sinr = tf.linalg.diag_part(
+     #   tf.square(
+      #      tf.math.abs(
+       #         tf.matmul(steering_vector_h, precoding_matrix)
+        #    )
+        #),
+    #)
+    #print("shape",this_sinr)
+    #print("thissinr",this_sinr.numpy())
+    #print("beta_in",beta_c)
+    #this_sinr_b = tf.multiply(tf.square(tf.abs(tf.reduce_mean(beta_c,axis=2))),this_sinr)
+    print(tf.square(tf.abs(tf.reduce_mean(beta_c,axis=2))))
+    #print("thissinr_b",this_sinr_b.numpy())
+    #beta_n = tf.cast(tf.transpose(tf.abs(beta_c), perm=[0, 2, 1]), dtype=tf.complex64)
+    beta_squ = tf.reduce_mean(tf.square(tf.abs(beta_c)),axis=2,keepdims=True)
+
+    print("beta_squ",beta_squ)
+    total = tf.multiply(beta_squ,
         tf.square(
             tf.abs(
-                tf.matmul(steering_vector_h, precoding_withB)
+                tf.matmul(steering_vector_h, precoding_matrix)
             )
-        )
-    ,axis=2)
+        ))
+    #precoding_withB = tf.multiply(beta_n,precoding_matrix)
+    sum_all = tf.reduce_sum(total,axis=2)
 
+    this_sinr_b = tf.linalg.diag_part(total)
+    print("sum_all",tf.square(tf.abs(tf.matmul(steering_vector_h, precoding_matrix))))
+    print("this_sinr_b",this_sinr_b)
+    print("sum_all",beta_squ*tf.square(tf.abs(tf.matmul(steering_vector_h, precoding_matrix))))
+    #print("sum_all1",tf.square(tf.abs(tf.matmul(steering_vector_h,precoding_withB))).numpy())
+    #print("sum_all",sum_all.numpy())
     #sum_other = tf.squeeze(sum_other, axis=-1)
     #shape = tf.shape(CSI)
     sum_other = G*(sum_all-this_sinr_b)
+    #print("sum_other",sum_other.numpy())
     this_sinr_gain = G * this_sinr_b
+    #print("this_sinr_gain",this_sinr_gain.numpy())
     #output should be(batch,num_vehicle)
     return tf.square(rou_delay)* (sum_other + sigma_z)/this_sinr_gain
 
@@ -711,12 +790,13 @@ def tf_sigma_delay_square(steering_vector_h, precoding_matrix_c,beta):
 "calculation for CRB"
 def tf_CRB_distance(Sigma_time_delay_2):
     c = tf.constant(config_parameter.c, dtype=tf.float32)
-    crlb_d_inv = tf.divide(1.0, Sigma_time_delay_2) * tf.square(tf.divide(2.0, c))
-    CRB_d = tf.divide(1.0, crlb_d_inv)
-    abs_CRB_d = tf.abs(CRB_d)
-    len = tf.shape(abs_CRB_d)[1]
-    crb_dist = tf.reduce_sum(abs_CRB_d, axis=1) / tf.cast(len, dtype=tf.float32)
-    return crb_dist
+    CRB_d = Sigma_time_delay_2 * tf.square(tf.divide(c,2.0))
+    #crlb_d_inv = tf.divide(1.0, Sigma_time_delay_2) * tf.square(tf.divide(2.0, c))
+    #CRB_d = tf.divide(1.0, crlb_d_inv)
+    #abs_CRB_d = tf.abs(CRB_d)
+    #len = tf.shape(abs_CRB_d)[1]
+    #crb_dist = tf.reduce_sum(abs_CRB_d, axis=1) / tf.cast(len, dtype=tf.float32)
+    return CRB_d
 
 def tf_CRB_angle(beta,precoding_matrix,theta):
     #partial should be a(batch,num_vehicle)

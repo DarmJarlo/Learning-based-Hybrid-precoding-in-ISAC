@@ -10,7 +10,8 @@ from scipy import signal
 import tensorflow as tf
 import loss
 import matplotlib.pyplot as plt
-def Test_echo_partial():
+def Test_sigma_delay(steering_vector_h,precoding_matrix_c,beta):
+    sigma = loss.tf_sigma_delay_square(steering_vector_h, precoding_matrix_c, beta)
 
 def Test_steering_vector_generation(angle,distance):
     theta = angle.T
@@ -78,6 +79,7 @@ def Test_svd():
     print("error",np.exp(1j*matrix_rad)-reconstruct)
 
     return complex_matrix,complex_matrix_norm,reconstruct,reconstruct_rad
+'''
 angle,distance = loss.load_data()
 selected_angle = angle[0:4,:]
 selected_distance = distance[0:4,:]
@@ -94,7 +96,25 @@ print("csi",CSI)
 CSI_o = np.multiply(5,CSI)
 print("csi111111",CSI_o)
 Test_sumrate(CSI,precoding_matrix)
+'''
+#angle = np.array([[0.1,0.2,0.1,0.2],[0.2,0.3,0.2,0.3],[0.7,0.8,0.7,0.8],[0.8,0.9,0.8,0.9]])
+angle = np.array([[0.1,0.2,0.1,0.2],[0.2,0.5,0.2,0.5]])
+#distance = np.array([[50,50,100,100],[100,100,200,200],[60,120,60,120],[120,60,120,60]])
+distance = np.array([[50,20,200,100],[10,20,200,400]])
+print(distance.shape)
+print(angle.shape)
 
+
+steering_vector,path_loss,beta=Test_steering_vector_generation(angle,distance)
+print("steering_vector",steering_vector)
+print("path_loss",path_loss)
+print("beta1",beta)
+#steering_vector=np.array([[[1+1j,2+2j],[5+5j,6+6j], [2,2],[5,6]],[[1+1j,2+2j],[3+3j,4+4j],[5+5j,6+6j],[7+7j,8+8j]]])
+#precoding_matrix=np.array([[[1,2,3,4],[5,10,20,30]],[[40,50,15,20],[15,30,5,6]],[15,20]],[[15,20],[15,30],[5,6],[15,20]]])
+
+precoding_matrix = abs(loss.simple_precoder(angle.T,distance.T))
+print("precoding_matrix1",precoding_matrix)
+sigma = Test_sigma_delay(steering_vector,precoding_matrix_c=precoding_matrix, beta=beta)
 '''
 complex_matrix,complex_matrix_norm,reconstruct,reconstruct_rad=Test_svd()
 idx = np.arange(8)

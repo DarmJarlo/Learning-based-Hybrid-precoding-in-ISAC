@@ -45,7 +45,7 @@ Initial_location_min = 50
 Initial_location_max = 100
 Radar_measure_slot = 0.1 #s
 length_echo = 0.005  # length of echo ms
-power = 30
+power = 1
 
 fading_coefficient = 10 + 10j
 #calculation for doppler_frequency
@@ -74,7 +74,7 @@ train_initial_location_min = 30
 train_initial_location_max = 120
 
 #setup for metrics
-rf_size = 6
+rf_size = 4
 antenna_size = 16
 vehicle_antenna_size = 16
 receiver_antenna_size = 1
@@ -99,15 +99,15 @@ pulse_duration = 10e-6  # pulse duration in seconds
 R_max = 200  # maximum range in meters
 Signal_noise_power = 0.1#noise for echo signal
 sigma_rk = Signal_noise_power
-rou_timedelay = 2e-9
-rou_dopplershift = 2e-9
+rou_timedelay = 2e-6
+rou_dopplershift = 2e-6
 
 
 
 
 #loss_mode = "Upper_sum_rate"   # three mode
-#loss_mode = "lower_bound_crb"
-loss_mode = "combined_loss"
+loss_mode = "lower_bound_crb"
+#loss_mode = "combined_loss"
 
 
 #below are the parameter for v2v

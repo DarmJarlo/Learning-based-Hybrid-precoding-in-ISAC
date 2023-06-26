@@ -190,7 +190,7 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         self.bn1 = keras.layers.BatchNormalization()
         self.maxpool1 = MaxPooling2D()
         self.conv_layer2 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
-        self.dropout2 = keras.layers.Dropout(0.05)
+        self.dropout2 = keras.layers.Dropout(0.25)
         self.bn2 = keras.layers.BatchNormalization()
         self.maxpool2 = MaxPooling2D()
         self.conv_layer3 = Conv2D(128, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
@@ -199,7 +199,7 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         self.bn4 = keras.layers.BatchNormalization()
         self.conv_layer5 = Conv2D(512,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
         self.bn5 = keras.layers.BatchNormalization()
-        self.dropout3 = keras.layers.Dropout(0.1)
+        self.dropout3 = keras.layers.Dropout(0.25)
 
         self.maxpool3 = MaxPooling2D()
         self.avgpool = tf.keras.layers.GlobalAveragePooling2D()

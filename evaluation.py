@@ -4,7 +4,7 @@ import config_parameter
 import math
 import tensorflow as tf
 from network import DL_method_NN_for_v2x_mod,DL_method_NN_for_v2x_hybrid
-
+import matplotlib.pyplot as plt
 Test = "V2V"
 Test = "V2I"
 if config_parameter.mode == "V2I":
@@ -229,10 +229,55 @@ def eva(Test):
     elif Test == "V2I":
         real_distance, real_theta = generate_input_v2i()
     combined = loss.Conversion2CSI(real_distance, real_theta)
+    combined = loss.Conversion2input_small(real_theta, real_distance)
     # this one output the CSI and zf matrix
     zf_matrix = tf.complex(combined[:,:,2*antenna_size:3*antenna_size],combined[:,:,3*antenna_size:4*antenna_size])
     CSI = tf.complex(combined[:,:,0:antenna_size],combined[:,:,antenna_size:2*antenna_size])
-    precoding_matrix =
+    model1 = load_model_hybrid()
+    model2 = load_model_digital()
+    model3 = load_model_only_communication_hybrid()
+    model4 = load_model_only_communication_digital()
+    output1 = model1(combined)
+    output2 = model2(combined)
+    output3 = model3(combined)
+    output4 = model4(combined)
+    analog1,digital1 = loss.tf_Output2PrecodingMatrix_rad(output1)
+    precoder1 = loss.tf_Precoding_matrix_combine(analog1,digital1)
+    precoder2 = loss.tf_Output2digitalPrecoding(output2)
+    analog2,digital2 = loss.tf_Output2PrecodingMatrix(output3)
+    precoder3 = loss.tf_Precoding_matrix_combine(analog2,digital2)
+    precoder4 = loss.tf_Output2digitalPrecoding(output4)
+    sum_rate1 = loss.tf_Sum_rate(precoder1,CSI)
+    sum_rate2 = loss.tf_Sum_rate(precoder2,CSI)
+    sum_rate3 = loss.tf_Sum_rate(precoder3,CSI)
+    sum_rate4 = loss.tf_Sum_rate(precoder4,CSI)
+
+
+    # 创建一个图形窗口
+    plt.figure()
+
+    # 绘制第一个模型的输出
+    plt.plot(range(10), sum_rate1, label='Model 1')
+
+    # 绘制第二个模型的输出
+    plt.plot(range(10), sum_rate2, label='Model 2')
+
+    # 绘制第三个模型的输出
+    plt.plot(range(10), sum_rate3, label='Model 3')
+
+    # 绘制第四个模型的输出
+    plt.plot(range(10), sum_rate4, label='Model 4')
+
+    # 添加图例
+    plt.legend()
+
+    # 添加标题和轴标签
+    plt.title('Sum rate at every timepoint')
+    plt.xlabel('time')
+    plt.ylabel('sum rate: bits/s/Hz')
+
+    # 显示图形
+    plt.show()
 
 
 
