@@ -81,7 +81,9 @@ if __name__ == '__main__':
 
             output = model(input)
             analog_rad = input[:,0:config_parameter.rf_size,6*antenna_size:7*antenna_size,0]
-            digital_part =
+            digital_ref = tf.complex(input[:,0:config_parameter.rf_size,\
+                                   2*antenna_size:2*antenna_size+num_vehicle,0], \
+                                   input[:,:,3*antenna_size:3*antenna_size+num_vehicle,0])
             distance = input[:, :, 5 * antenna_size:6*antenna_size, 0]
             distance = tf.multiply(distance, 100)
             distance = tf.cast(distance, tf.float64)
@@ -103,7 +105,12 @@ if __name__ == '__main__':
             shape = tf.shape(input)
 
             batch_size= shape[0]
-            Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+            #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+            Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,\
+                                                                                   analog_ref=analog_rad,\
+                                                                                   digital_ref=digital_ref)
+
+
             #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
             precoding_matrix = loss.tf_Precoding_matrix_comb_Powerallocated(Analog_matrix, Digital_matrix,distance[:,:,0])
             #precoding_matrix = loss.tf_Precoding_comb_no_powerconstarint(Analog_matrix, Digital_matrix)
@@ -166,7 +173,8 @@ if __name__ == '__main__':
             #communication_loss = communication_loss/input.shape[0]
             precoding_matrix = tf.cast(precoding_matrix, tf.complex128)
             crb_combined_loss = tf.cast(crb_combined_loss, tf.float32)
-            crb_combined_loss = -1000/(tf.reduce_sum(crb_combined_loss)/(batch_size*num_vehicle))
+            #crb_combined_loss = -1000/(tf.reduce_sum(crb_combined_loss)/(batch_size*num_vehicle))
+            crb_combined_loss = tf.reduce_sum(crb_combined_loss) / (batch_size * num_vehicle)
             combined_loss = tf.reduce_sum(crb_combined_loss -sum_rate_this,axis=0)/batch_size
             #combined_loss = 1e15*mse_value
             #crb_loss =
@@ -190,7 +198,7 @@ if __name__ == '__main__':
         '''
         optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
 
-        return crb_combined_loss,output,CSI,gradients,tf.reduce_sum(CRB_d,axis=0)/batch_size
+        return communication_loss,output,CSI,gradients,tf.reduce_sum(CRB_d,axis=0)/batch_size
 
 
     crb_d_sum_list = []  # the crb distance sum at all timepoints in this list
@@ -199,8 +207,8 @@ if __name__ == '__main__':
     sum_rate_list_reciprocal = []  # the sum rate at all timepoints in this list
     sum_rate_list = []
     angle, distance = loss.load_data()
-    input_whole = loss.Conversion2input_small(angle, distance)
-    #input_whole = loss.Conversion2input_small2(angle, distance)
+    #input_whole = loss.Conversion2input_small(angle, distance)
+    input_whole = loss.Conversion2input_small2(angle, distance)
     input_whole = np.expand_dims(input_whole, axis=3)
     #normalized_data = (data - np.mean(data)) / np.std(data)
 
@@ -216,16 +224,16 @@ if __name__ == '__main__':
     for iter in range(0, config_parameter.iters):
         #iter += 7
         if iter < 4:
-            optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.0001, rho=0.9)
-            #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.002, beta_1=0.9, beta_2=0.99)
+            #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.001, rho=0.9)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.002, beta_1=0.9, beta_2=0.99)
         #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003, beta_1=0.91, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.003)
         elif iter <6:
-            #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.99)
-            optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00005, rho=0.9)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.99)
+            #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00005, rho=0.9)
         else:
-            #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00003, beta_1=0.9, beta_2=0.99)
-            optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00003, rho=0.9)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0003, beta_1=0.9, beta_2=0.99)
+            #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00003, rho=0.9)
         print(iter)
         tf_dataset = tf_dataset.shuffle(9600)
         #tf_dataset = tf_dataset.batch(config_parameter.batch_size)
