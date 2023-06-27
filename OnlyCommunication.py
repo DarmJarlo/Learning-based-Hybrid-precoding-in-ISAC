@@ -22,12 +22,12 @@ def load_model():
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
 
-    model.build(input_shape=(config_parameter.batch_size, num_vehicle,40,1))
+    model.build(input_shape=(None, num_vehicle,32,1))
 
     model.summary()
     if config_parameter.FurtherTrain ==True:
         #model = tf.saved_model.load('Keras_models/new_model')
-        model.load_weights(filepath='Keras_models_hybrid/new_model')
+        model.load_weights(filepath='Keras_models_hybrid_only_communication/new_model')
     return model
 
 if __name__ == '__main__':
@@ -89,23 +89,28 @@ if __name__ == '__main__':
 
             batch_size= shape[0]
 
-            #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
-            #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
+            Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+            precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
+            # precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
+            #precoding_matrix = loss.tf_Precoding_matrix_comb_Powerallocated(Analog_matrix, Digital_matrix,
+                     #                                                       distance[:, :, 0])
+            # precoding_matrix = loss.tf_Precoding_comb_no_powerconstarint(Analog_matrix, Digital_matrix)
+
             #ZF_matrix = tf.complex(input[:, :, 2 * antenna_size:3 * antenna_size, 0],
              #                      input[:, :, 3 * antenna_size:4 * antenna_size, 0])
             #precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output,zf_matrix=ZF_matrix)
-            analog_ref = input[:,0:config_parameter.rf_size,2*antenna_size:3*antenna_size,0]
-            analog_ref = tf.transpose(analog_ref,perm=[0,2,1])
-            digital_ref = tf.complex(input[:,0:config_parameter.rf_size,3*antenna_size:3*antenna_size+num_vehicle,0],\
-                                     input[:,0:config_parameter.rf_size,4*antenna_size:4*antenna_size+num_vehicle,0])
+            #analog_ref = input[:,0:config_parameter.rf_size,2*antenna_size:3*antenna_size,0]
+            #analog_ref = tf.transpose(analog_ref,perm=[0,2,1])
+            #digital_ref = tf.complex(input[:,0:config_parameter.rf_size,3*antenna_size:3*antenna_size+num_vehicle,0],\
+                                     #input[:,0:config_parameter.rf_size,4*antenna_size:4*antenna_size+num_vehicle,0])
 
 
             #analog,digital = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,analog_ref=analog_ref,digital_ref=digital_ref)
 
-            precoding_matrix = loss.tf_Precoding_matrix_combine(analog,digital)
+            #precoding_matrix = loss.tf_Precoding_matrix_combine(analog,digital)
             CSI = tf.complex(input[:,:,0:1*antenna_size,0], input[:,:,1*antenna_size:2*antenna_size,0])
-            sum_rate_this = loss.tf_loss_sumrate(CSI, precoding_matrix)
-
+            sum_rate_this,sinr = loss.tf_loss_sumrate(CSI, precoding_matrix)
+            print(sum_rate_this)
             sum_rate_this = tf.cast(sum_rate_this, tf.float64)
             #zf_sumrate = tf.cast(zf_sumrate, tf.float32)
             batch_size = tf.cast(batch_size, tf.float64)
@@ -114,8 +119,9 @@ if __name__ == '__main__':
             power_error = tf.reduce_sum(tf.abs(precoding_matrix),axis= (1,2))-power
             #communication_loss = (100*tf.reduce_sum(power_error,axis=0)-\
              #                     tf.reduce_sum(-sum_rate_this, axis=0)) / batch_size
+            #communication_loss = tf.reduce_sum(-sum_rate_this, axis=0) / batch_size
             communication_loss = tf.reduce_sum(-sum_rate_this, axis=0) / batch_size
-
+            #communication_loss = -sum_rate_this
             #crb_loss =
             #communication_loss = tf.math.divide(1.0, sum_rate_this)
         if config_parameter.loss_mode == "Upper_sum_rate":
@@ -140,7 +146,7 @@ if __name__ == '__main__':
 
     sum_rate_list = []
     angle, distance = loss.load_data()
-    input_whole = loss.Conversion2CSI_mod(angle, distance)
+    input_whole = loss.Conversion2CSI(angle, distance)
     input_whole = np.expand_dims(input_whole, axis=3)
     #normalized_data = (data - np.mean(data)) / np.std(data)
 
@@ -160,7 +166,7 @@ if __name__ == '__main__':
 
         elif iter >=500:
             optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.002)
-        tf_dataset = tf_dataset.shuffle(3200)
+        tf_dataset = tf_dataset.shuffle(9600)
         #tf_dataset = tf_dataset.batch(config_parameter.batch_size)
         for batch in tf_dataset:
             print(tf.shape(batch))
@@ -206,9 +212,9 @@ if __name__ == '__main__':
         plt.grid(True)
         plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='Keras_models_hybrid/new_model', save_format='tf')
+        model.save_weights(filepath='Keras_models_hybrid_onlycommunication/new_model', save_format='tf')
         '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''
         # tf.saved_model.save(model, )
-    model.save_weights(filepath='Keras_models_hybrid/new_model', save_format='tf')
+    model.save_weights(filepath='Keras_models_hybrid_onlycommunication/new_model', save_format='tf')

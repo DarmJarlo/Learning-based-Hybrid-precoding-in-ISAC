@@ -50,7 +50,7 @@ power = 1
 fading_coefficient = 10 + 10j
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
-FurtherTrain = False
+FurtherTrain = True
 
 #these are for the simulation test
 speed_low = 20
@@ -78,8 +78,8 @@ rf_size = 4
 antenna_size = 16
 vehicle_antenna_size = 16
 receiver_antenna_size = 1
-sigma_k = 1e-10
-sigma_z = 1e-10
+sigma_k = 1e-8
+sigma_z = 1e-8
 
 
 #path loss parameters
@@ -105,9 +105,9 @@ rou_dopplershift = 2e-6
 
 
 
-loss_mode = "Upper_sum_rate"   # three mode
+#loss_mode = "Upper_sum_rate"   # three mode
 #loss_mode = "lower_bound_crb"
-#loss_mode = "combined_loss"
+loss_mode = "combined_loss"
 
 
 #below are the parameter for v2v

@@ -22,8 +22,8 @@ def translate_precoding_matrix(matrix):
 
     return translated_matrix
 import math
-model = OnlyCommunication.load_model()
-model.load_weights(filepath='Keras_models_hybrid/new_model')
+model = load_model()
+model.load_weights(filepath='Keras_models_digital_onlycommunication/new_model')
 if config_parameter.mode == "V2I":
     antnna_size = config_parameter.antenna_size
     num_vehicle = config_parameter.num_vehicle
@@ -34,7 +34,7 @@ elif config_parameter.mode == "V2V":
 angle,distance = loss.load_data()
 selected_angle = angle[0:config_parameter.batch_size,:]
 selected_distance = distance[0:config_parameter.batch_size,:]
-input_single= loss.Conversion2CSI(selected_angle,selected_distance)
+input_single= loss.Conversion2input_small(selected_angle,selected_distance)
 input_single = tf.expand_dims(input_single, axis=3)
 
 
@@ -47,10 +47,15 @@ output = model(input_single)
 antenna_size_f = tf.cast(antenna_size, tf.float32)
 # dont forget here we are inputing a whole batch
 G = tf.math.sqrt(antenna_size_f)
-Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
-precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix=Analog_matrix, Digital_matrix=Digital_matrix)
-print("Analog_matrix",Analog_matrix[3])
-print("Digital_matrix",Digital_matrix[3])
+distance = input_single[:, :, 3 * antenna_size:4*antenna_size, 0]
+distance = tf.multiply(distance, 100)
+distance = tf.cast(distance, tf.float64)
+#Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+
+#precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix=Analog_matrix, Digital_matrix=Digital_matrix)
+precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output, zf_matrix=None,distance=distance[:,:,0])
+#print("Analog_matrix",Analog_matrix[3])
+#print("Digital_matrix",Digital_matrix[3])
 zf_precoding = tf.complex(input_single[:, :, 2 * antenna_size:3 * antenna_size, 0],
                                    input_single[:, :, 3 * antenna_size:4 * antenna_size, 0])
 #precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output, zf_matrix=zf_precoding)

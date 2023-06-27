@@ -193,12 +193,18 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         self.dropout2 = keras.layers.Dropout(0.25)
         self.bn2 = keras.layers.BatchNormalization()
         self.maxpool2 = MaxPooling2D()
-        self.conv_layer3 = Conv2D(128, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
+        self.conv_layer3 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
         self.bn3 = keras.layers.BatchNormalization()
-        self.conv_layer4 = Conv2D(256,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
+        self.maxpool3 = tf.keras.layers.GlobalAveragePooling2D()
+        self.conv_layer4 = Conv2D(128,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
         self.bn4 = keras.layers.BatchNormalization()
-        self.conv_layer5 = Conv2D(512,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
+        self.maxpool4 = tf.keras.layers.GlobalAveragePooling2D()
+        self.conv_layer5 = Conv2D(128,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
         self.bn5 = keras.layers.BatchNormalization()
+        #self.maxpool5 = MaxPooling2D()
+        self.conv_layer6 = Conv2D(256,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
+        self.bn6 = keras.layers.BatchNormalization()
+        self.maxpool5 = tf.keras.layers.GlobalAveragePooling2D()
         self.dropout3 = keras.layers.Dropout(0.25)
 
         self.maxpool3 = MaxPooling2D()
@@ -212,10 +218,11 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         #self.dense_6 = Dense(20, activation=act_func, kernel_initializer=init)
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
         parameter_size = config_parameter.rf_size*config_parameter.vehicle_antenna_size + 2*config_parameter.rf_size*num_vehicle
-        #parameter_size = 2 * config_parameter.vehicle_antenna_size * num_vehicle
+        parameter_size = 2 * config_parameter.vehicle_antenna_size * num_vehicle
         #self.out = Dense(parameter_size, activation='softmax', kernel_initializer=init)
         #self.dense_4 = Dense(parameter_size, activation='softmax', kernel_initializer=init)
         #self.dense_4 = Dense(600, activation=act_func, kernel_initializer=init)
+        #self.
         self.fc = tf.keras.layers.Dense(units=parameter_size)
         self.act = tf.keras.layers.LeakyReLU(alpha=1)
 
@@ -224,18 +231,28 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         #out = self.maxpool1(out)
         out = self.bn1(out)
         out = self.conv_layer2(out)
-        out= self.dropout2(out)
+
         #out = self.maxpool2(out)
+        #
         out = self.bn2(out)
+        out = self.dropout2(out)
         out = self.conv_layer3(out)
+
+        out = self.maxpool3(out)
         out = self.bn3(out)
         out =self.conv_layer4(out)
+        #out = self.maxpool4(out)
         out =self.bn4(out)
+
         out =self.conv_layer5(out)
+        #out = self.maxpool5(out)
         out =self.bn5(out)
+        out =self.conv_layer6(out)
+        #out = self.maxpool6(out)
+        out =self.bn6(out)
         out = self.dropout3(out)
         out = self.avgpool(out)
-        #out = self.maxpool3(out)
+
         #out = self.bn3(out)
         out = self.flatten(out)
 

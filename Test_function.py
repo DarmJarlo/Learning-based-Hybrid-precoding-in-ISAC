@@ -114,7 +114,8 @@ print("beta1",beta)
 
 precoding_matrix = abs(loss.simple_precoder(angle.T,distance.T))
 print("precoding_matrix1",precoding_matrix)
-sigma = Test_sigma_delay(steering_vector,precoding_matrix_c=precoding_matrix, beta=beta)
+partial = loss.tf_Echo_partial(beta,precoding_matrix,angle)
+#sigma = Test_sigma_delay(steering_vector,precoding_matrix_c=precoding_matrix, beta=beta)
 '''
 complex_matrix,complex_matrix_norm,reconstruct,reconstruct_rad=Test_svd()
 idx = np.arange(8)

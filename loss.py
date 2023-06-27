@@ -197,12 +197,12 @@ def Conversion2input_small(angle,distance):
                6 * antenna_size))
     input_whole[:,:,0:1*antenna_size] = np.real(np.conjugate(steering_vector))
     input_whole[:,:,1*antenna_size:2*antenna_size] = np.imag(np.conjugate(steering_vector))
-    input_whole[:,:,2*antenna_size:3*antenna_size] = np.real(zf_matrix)
-    input_whole[:, :, 3 * antenna_size:4 * antenna_size] = np.imag(zf_matrix)
+    input_whole[:,:,4*antenna_size:5*antenna_size] = np.real(zf_matrix)
+    input_whole[:, :, 5 * antenna_size:6 * antenna_size] = np.imag(zf_matrix)
 
     for i in range(0, antenna_size):
-        input_whole[:, :, 4 * antenna_size + i] = theta.T
-        input_whole[:, :, 5 * antenna_size + i] = (real_distance/100).T
+        input_whole[:, :, 2 * antenna_size + i] = theta.T
+        input_whole[:, :, 3 * antenna_size + i] = (real_distance/100).T
 
     return input_whole
 def Conversion2input_small2(angle,distance):
@@ -416,8 +416,8 @@ def Conversion2CSI(angle,distance):
                4 * antenna_size))
     input_whole[:,:,0:1*antenna_size] = np.real(CSI)
     input_whole[:,:,1*antenna_size:2*antenna_size] = np.imag(CSI)
-    input_whole[:,:,2*antenna_size:3*antenna_size] = np.real(zf_matrix)
-    input_whole[:, :, 3 * antenna_size:4 * antenna_size] = np.imag(zf_matrix)
+    #input_whole[:,:,2*antenna_size:3*antenna_size] = np.real(zf_matrix)
+    #input_whole[:, :, 3 * antenna_size:4 * antenna_size] = np.imag(zf_matrix)
 
     return input_whole
 "input generation"
@@ -457,6 +457,19 @@ def zero_forcing(CSI):
 
     adjustment_factor = max_power / magnitude_sum
     H_inv = np.multiply(H_inv, adjustment_factor)
+
+    return H_inv
+def tf_zero_forcing(CSI):
+
+    H_inv_real = tf.linalg.pinv(tf.math.real(CSI))
+    H_inv_imag = tf.linalg.pinv(tf.math.imag(CSI))
+    H_inv = tf.complex(H_inv_real,H_inv_imag)
+    max_power = config_parameter.power
+    magnitude_sum = tf.reduce_sum(tf.abs(H_inv),axis=[1,2],keepdims=True)
+
+    adjustment_factor = max_power / magnitude_sum
+    adjustment_factor= tf.cast(adjustment_factor,tf.complex128)
+    H_inv = tf.multiply(H_inv, adjustment_factor)
 
     return H_inv
 def calculate_steer_vector(theta_list):
@@ -534,7 +547,7 @@ def tf_Output2PrecodingMatrix_rad_mod(Output,analog_ref,digital_ref):
 
     print(Digital_Matrix)
     return Analog_Matrix, Digital_Matrix
-def tf_Output2digitalPrecoding(Output,zf_matrix):
+def tf_Output2digitalPrecoding(Output,zf_matrix,distance):
     shape = tf.shape(Output)
     batch_size = shape[0]
 
@@ -554,14 +567,15 @@ def tf_Output2digitalPrecoding(Output,zf_matrix):
     Real_reshaped = tf.reshape(Real, (batch_size,antenna_size, num_vehicle))
     Imag_reshaped = tf.reshape(Imag, (batch_size,antenna_size, num_vehicle))
     Digital_Matrix = tf.complex(Real_reshaped, Imag_reshaped)
-    max_power = tf.constant(config_parameter.power, dtype=tf.float32)
+    #max_power = tf.constant(config_parameter.power, dtype=tf.float32)
 
 
     #shape(8,2)
-    magnitude_sum = tf.reduce_sum(tf.abs(Digital_Matrix), axis=[1, 2], keepdims=True)
-    adjustment_factor = max_power / magnitude_sum
-    adjustment_factor = tf.cast(adjustment_factor, tf.complex64)
-    Digital_Matrix = Digital_Matrix * adjustment_factor
+    #magnitude_sum = tf.reduce_sum(tf.abs(Digital_Matrix), axis=[1, 2], keepdims=True)
+    #adjustment_factor = max_power / magnitude_sum
+    #adjustment_factor = tf.cast(adjustment_factor, tf.complex64)
+    #Digital_Matrix = Digital_Matrix * adjustment_factor
+    Digital_Matrix = powerallocated(Digital_Matrix,distance)
     #Digital_Matrix_e = tf.transpose(zf_matrix,perm=[0,2,1]) + tf.cast(Digital_Matrix, tf.complex128)
     return Digital_Matrix
 def tf_Output2PrecodingMatrix_powerallocated(Output):
@@ -672,6 +686,34 @@ def tf_Precoding_matrix_comb_Powerallocated(Analog_matrix,Digital_matrix,distanc
     print("adjustment_factor",adjustment_factor)
     adjustment_factor = tf.cast(adjustment_factor,dtype=tf.complex128)
     #matrix = tf.cast(matrix, dtype=tf.complex128)
+    normalized_array = tf.multiply(matrix, adjustment_factor)
+
+    return normalized_array
+def powerallocated(matrix,distance):
+    if config_parameter.mode == "V2I":
+        antenna_size = config_parameter.antenna_size
+        num_vehicle = config_parameter.num_vehicle
+    elif config_parameter.mode == "V2V":
+        antenna_size = config_parameter.vehicle_antenna_size
+        num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
+
+    max_power = tf.constant(config_parameter.power, dtype=tf.float64)
+    distance_sum = tf.reduce_sum(distance, axis=1,keepdims=True)
+    distance_sum =tf.tile(distance_sum, [1,tf.shape(distance)[1]])
+    print("distance_sum",distance_sum)
+    adjustment_power = distance * max_power / distance_sum
+    adjustment_power = tf.cast(adjustment_power, dtype=tf.float64)
+    adjustment_power = tf.expand_dims(adjustment_power, axis=1)
+    #adjustment_power = tf.tile(adjustment_power, [1, antenna_size])
+    print("adjustment_power",adjustment_power)
+    matrix = tf.cast(matrix, dtype=tf.complex128)
+    # shape(8,2)
+    magnitude_sum = tf.reduce_sum(tf.abs(matrix), axis=1, keepdims=True)
+    print("magnitude_sum", magnitude_sum)
+    adjustment_factor = adjustment_power / magnitude_sum
+    print("adjustment_factor", adjustment_factor)
+    adjustment_factor = tf.cast(adjustment_factor, dtype=tf.complex128)
+    # matrix = tf.cast(matrix, dtype=tf.complex128)
     normalized_array = tf.multiply(matrix, adjustment_factor)
 
     return normalized_array
@@ -828,7 +870,7 @@ def tf_CRB_angle(beta,precoding_matrix,theta):
 
     partial = tf_Echo_partial(beta,precoding_matrix,theta)
 
-    partial_h = tf.conj(partial)
+    partial_h = tf.math.conj(partial)
 
     #partial shape = (batch_size,vehicle)
     #partial_hermite = tf.transpose(tf.conj(partial), perm=[0, 2, 1])
@@ -838,10 +880,12 @@ def tf_CRB_angle(beta,precoding_matrix,theta):
     #reciprocal = tf.math.reciprocal(tensor)
     abs_CRB_theta = tf.abs(CRB_theta)
     #shape = tf.shape(abs_CRB_theta)
-    CRB_theta = tf.reduce_sum(abs_CRB_theta, axis=1)
-    return CRB_theta
-def tf_Echo_partial(beta,precoding_matrix,theta_o):
-    theta = theta_o[:,:,0,0]
+    #CRB_theta = tf.reduce_sum(abs_CRB_theta, axis=1)
+    return abs_CRB_theta
+def tf_Echo_partial(beta_o,precoding_matrix,theta_o):
+    beta = beta_o[:,:,0]
+    theta = theta_o
+    print(theta)
     #this one is function Echo_partial_beta written in tensorflow
     matched_filter_gain = tf.constant(config_parameter.matched_filtering_gain,tf.float32)
     if config_parameter.mode == "V2I":
@@ -853,20 +897,34 @@ def tf_Echo_partial(beta,precoding_matrix,theta_o):
 
     #sin_theta =tf.sin(theta)
     #cos_theta = tf.cos(theta)
-    pi = tf.constant(np.pi,tf.complex64)
+    pi = tf.constant(np.pi,tf.complex128)
 
-    nt = tf.range(2,antenna_size+1)
+    nt = tf.range(1,antenna_size)
     #nt_complex = tf.cast(nt, tf.float32)  # Convert to float32
-    nt_complex = tf.cast(nt, tf.complex64)
+    nt_complex = tf.cast(nt, tf.complex128)
 
     antenna_size_o = tf.cast(antenna_size,tf.complex128)
     matched_filter_gain = tf.cast(matched_filter_gain,tf.complex128)
-    item_first = -tf.sqrt(antenna_size_o)*beta[:,tf.newaxis]*matched_filter_gain   # beta is ( batch,num_vehicle)
+    sin_theta = tf.cast(tf.sin(theta),tf.complex128)
+    cos_theta = tf.cast(tf.cos(theta),tf.complex128)
+    beta = tf.cast(beta,tf.complex128)
+    item_first = -tf.sqrt(antenna_size_o)*matched_filter_gain*beta
+    print("item_first",item_first)
+    item_exp2 = 1j*pi*nt_complex*sin_theta[:,:,tf.newaxis]
+    print("item_exp2",item_exp2)
+    item_exp1 = tf.exp(1j * pi * nt_complex * cos_theta[:,:,tf.newaxis])
+    print("item_exp1",item_exp1)
 
-    item_exp = tf.multiply(tf.cos(pi*(nt_complex-1)*tf.cos(theta[:,tf.newaxis]))+1j*tf.sin(pi*(nt_complex-1)*tf.cos(theta[:,tf.newaxis])))*1j*(nt_complex-1)*sin(theta[:,tf.newaxis]) #nt is (antenna_size-1) theta is (batch,num_vehicle)
-    item_second = precoding_matrix[:,nt,:]*item_exp
-    partial = tf.reduce_sum(item_first*item_second,axis=1)
-    partial =  tf.squeeze(partial)
+    item_exp = tf.multiply(item_exp2,item_exp1) #nt is (antenna_size-1) theta is (batch,num_vehicle)
+    print("item_exp",item_exp)
+    #print("precoding_matrix",tf.shape(precoding_matrix[:,nt,:]))
+    precoding_matrix = tf.cast(precoding_matrix,tf.complex128)
+    item_second = tf.reduce_sum(tf.multiply(precoding_matrix[:,1:antenna_size,:],tf.transpose(item_exp,perm=[0,2,1])),axis=1)
+    print("item_second",item_second)
+    item_second = tf.squeeze(item_second)
+    partial = tf.multiply(item_first,item_second)
+    print("partial",partial)
+    #partial =  tf.squeeze(partial)
     return partial
 "loss combined"
 
