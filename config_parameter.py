@@ -47,10 +47,12 @@ Radar_measure_slot = 0.1 #s
 length_echo = 0.005  # length of echo ms
 power = 1
 
-fading_coefficient = 10 + 10j
+fading_coefficient = 0.1 + 0.1*1j
+"""這裏越小，zf的crb越大，因爲zf的幹擾永遠爲0，這個參數越小的話，sinr數量級越小，zf的crb越大"""
+"""同樣的，pathloss越小，zf的sumrate越小，因爲sinr的數量級越小，zf的sumrate越小"""
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
-FurtherTrain = True
+FurtherTrain = False
 
 #these are for the simulation test
 speed_low = 20
@@ -84,8 +86,8 @@ sigma_z = 1e-8
 
 #path loss parameters
 
-d0 = 10
-alpha = 1e-6#path_loss alpha at reference distance d0 UNIT: dB
+d0 = 100
+alpha = 1e-3#path_loss alpha at reference distance d0 UNIT: dB
 #alpha = 1e-6#path_loss alpha at reference distance d0 UNIT: dB
 path_loss_exponent = -2.55
 
@@ -99,15 +101,15 @@ pulse_duration = 10e-6  # pulse duration in seconds
 R_max = 200  # maximum range in meters
 Signal_noise_power = 0.1#noise for echo signal
 sigma_rk = Signal_noise_power
-rou_timedelay = 2e-6
-rou_dopplershift = 2e-6
+rou_timedelay = 3e-8
+rou_dopplershift = 3e-8
 
 
 
 
 #loss_mode = "Upper_sum_rate"   # three mode
-#loss_mode = "lower_bound_crb"
-loss_mode = "combined_loss"
+loss_mode = "lower_bound_crb"
+#loss_mode = "combined_loss"
 
 
 #below are the parameter for v2v

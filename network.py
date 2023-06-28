@@ -44,7 +44,7 @@ import numpy as np
 import config_parameter
 from tensorflow import keras
 from tensorflow.keras.layers import Conv1D, LSTM, Dense, BatchNormalization, Activation, Add,Reshape
-
+from tensorflow.keras.regularizers import l2
 class ResNet(tf.keras.Model):
     def __init__(self, layer_params=[0,0,1,0]):
         super(ResNet, self).__init__()
@@ -186,32 +186,32 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         init = keras.initializers.GlorotNormal() #Xavier initializer
 
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
-        self.conv_layer1 = Conv2D(32, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
+        self.conv_layer1 = Conv2D(32, kernel_size=1, activation=act_func, kernel_initializer=init, padding="same",kernel_regularizer=l2(1e-4))
         self.bn1 = keras.layers.BatchNormalization()
         self.maxpool1 = MaxPooling2D()
-        self.conv_layer2 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
+        self.conv_layer2 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same",kernel_regularizer=l2(1e-4))
         self.dropout2 = keras.layers.Dropout(0.25)
         self.bn2 = keras.layers.BatchNormalization()
         self.maxpool2 = MaxPooling2D()
-        self.conv_layer3 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same")
+        self.conv_layer3 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same",kernel_regularizer=l2(1e-4))
         self.bn3 = keras.layers.BatchNormalization()
         self.maxpool3 = tf.keras.layers.GlobalAveragePooling2D()
-        self.conv_layer4 = Conv2D(128,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
+        self.conv_layer4 = Conv2D(128,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same",kernel_regularizer=l2(1e-4))
         self.bn4 = keras.layers.BatchNormalization()
         self.maxpool4 = tf.keras.layers.GlobalAveragePooling2D()
-        self.conv_layer5 = Conv2D(128,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
+        self.conv_layer5 = Conv2D(128,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same",kernel_regularizer=l2(1e-4))
         self.bn5 = keras.layers.BatchNormalization()
         #self.maxpool5 = MaxPooling2D()
-        self.conv_layer6 = Conv2D(256,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same")
+        self.conv_layer6 = Conv2D(256,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same",kernel_regularizer=l2(1e-4))
         self.bn6 = keras.layers.BatchNormalization()
         self.maxpool5 = tf.keras.layers.GlobalAveragePooling2D()
-        self.dropout3 = keras.layers.Dropout(0.25)
+        self.dropout3 = keras.layers.Dropout(0.1)
 
         self.maxpool3 = MaxPooling2D()
         self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
         self.flatten = Flatten()
-        #self.dense_1 = Dense(1200, activation=act_func, kernel_initializer=init)
-        #self.dense_2 = Dense(1200, activation=act_func, kernel_initializer=init)
+        self.dense_1 = Dense(1024, activation=act_func, kernel_initializer=init)
+        self.dense_2 = Dense(512, activation=act_func, kernel_initializer=init)
         #self.dense_3 = Dense(600, activation=act_func, kernel_initializer=init)
 
         #self.dense_5 = Dense(20, activation=act_func, kernel_initializer=init)
@@ -235,7 +235,7 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         #out = self.maxpool2(out)
         #
         out = self.bn2(out)
-        out = self.dropout2(out)
+        #out = self.dropout2(out)
         out = self.conv_layer3(out)
 
         out = self.maxpool3(out)
@@ -260,6 +260,8 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         #out = self.dense_2(out)
         #out = self.dense_3(out)
         #out = self.dense_4(out)
+        out = self.dense_1(out)
+        out = self.dense_2(out)
         out = self.fc(out)
         x = self.act(out)
         #x = tf.where(tf.math.greater(x, 0), tf.minimum(x, 5.0), tf.maximum(x, -5.0))

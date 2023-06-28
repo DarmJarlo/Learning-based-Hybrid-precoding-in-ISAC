@@ -27,7 +27,7 @@ def load_model():
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
 
-    model.build(input_shape=(None, num_vehicle,64,1))
+    model.build(input_shape=(None, num_vehicle,128,1))
 
     model.summary()
     if config_parameter.FurtherTrain ==True:
@@ -86,7 +86,7 @@ if __name__ == '__main__':
              #                      2*antenna_size:2*antenna_size+num_vehicle,0], \
               #                     input[:,:,3*antenna_size:3*antenna_size+num_vehicle,0])
             distance = input[:, :, 3 * antenna_size:4*antenna_size, 0]
-            distance = tf.multiply(distance, 100)
+            #distance = tf.multiply(distance, 100)
             distance = tf.cast(distance, tf.float64)
             theta = input[:,:, 2 * antenna_size, 0]
             steering_vector_this_o = tf.complex(input[:, :, 0:antenna_size, 0],
@@ -100,6 +100,7 @@ if __name__ == '__main__':
             # dont forget here we are inputing a whole batch
             G =tf.math.sqrt(antenna_size_f)
             CSI = tf.multiply(tf.cast(tf.multiply(G, pathloss),dtype=tf.complex128), steering_vector_this_o)
+            CSI = tf.complex(input[:, :, 6*antenna_size:7*antenna_size, 0], input[:, :, 7*antenna_size:8 * antenna_size, 0])
             #zf_matrix = loss.tf_zero_forcing(CSI)
 
 
@@ -166,25 +167,27 @@ if __name__ == '__main__':
             #communication_random = tf.reduce_sum(-random_sumrate) / batch_size
             Sigma_time_delay_random = loss.tf_sigma_delay_square(steering_vector_this_o,random_precoding,beta)
             Sigma_time_delay = loss.tf_sigma_delay_square(steering_vector_this_o,precoding_matrix,beta)
-            #Sigma_time_delay_zf = loss.tf_sigma_delay_square(steering_vector_this_o,tf.transpose(zf_matrix,perm=[0,2,1]),beta)
+            Sigma_time_delay_zf = loss.tf_sigma_delay_square(steering_vector_this_o,tf.transpose(zf_matrix,perm=[0,2,1]),beta)
             #Sigma_time_delay_zf = loss.tf_sigma_delay_square(steering_vector_this_o,
                #                                              zf_matrix, beta)
             #Sigma_doppler = loss.tf_sigma_doppler_square(steering_vector_this,precoding_matrix,beta)
             CRB_random = loss.tf_CRB_distance(Sigma_time_delay_random)
             CRB_d = loss.tf_CRB_distance(Sigma_time_delay)
-            #CRB_d_zf = loss.tf_CRB_distance(Sigma_time_delay_zf)
+            CRB_d_zf = loss.tf_CRB_distance(Sigma_time_delay_zf)
             #CRB_d = 0.1
             #theta = tf.reduce_mean(input[:,:,8*antenna_size:9*antenna_size,0])
             #CRB_angle =0
             CRB_angle = loss.tf_CRB_angle(beta,precoding_matrix,theta)
+            CRB_angle = tf.reduce_sum(CRB_angle,axis=1)/num_vehicle
+            CRB_d = tf.reduce_sum(CRB_d,axis=1)/num_vehicle
             #CRB_angle_zf = loss.tf_CRB_angle(beta,tf.transpose(zf_matrix,perm=[0,2,1]),theta)
             CRB_d = tf.cast(CRB_d, tf.float64)
             CRB_angle = tf.cast(CRB_angle, tf.float64)
-            crb_combined_loss = CRB_d*1 +CRB_angle*1
+            crb_combined_loss = CRB_d*1 +CRB_angle*0
             #power = tf.constant(config_parameter.power, dtype=tf.float64)
             #power_error = tf.reduce_sum(tf.abs(precoding_matrix), axis=(1, 2)) - power
             #power_error = tf.cast(power_error, tf.float32)
-            communication_loss = tf.reduce_sum(zf_sumrate- sum_rate_this) / batch_size
+            communication_loss = tf.reduce_sum(-sum_rate_this) / batch_size
             #crb_combined_loss = CRB_d_zf*1 +CRB_angle_zf*0
             #CRB_d = loss.tf_CRB_distance()
             #communication_loss = communication_loss/input.shape[0]
@@ -216,8 +219,8 @@ if __name__ == '__main__':
         '''
         optimizer_1.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
 
-        return communication_loss,output,CSI,gradients,tf.reduce_sum(CRB_d,axis=[0,1])/batch_size,\
-               tf.reduce_sum(CRB_angle,axis=[0,1])/batch_size
+        return communication_loss,output,CSI,gradients,tf.reduce_sum(CRB_d)/batch_size,\
+               tf.reduce_sum(CRB_angle)/batch_size,combined_loss
 
 
     crb_d_sum_list = []  # the crb distance sum at all timepoints in this list
@@ -246,16 +249,17 @@ if __name__ == '__main__':
     for iter in range(0, config_parameter.iters):
 
         #iter += 7
-        if iter < 3:
-            #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.002, rho=0.9)
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.99)
+        if iter < 5:
+            #optimizer_1 = tf.keras.optimizers.SGD(learning_rate=0.00003, momentum=0.9, nesterov=False)
+            optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
+            #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.99)
         #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003, beta_1=0.91, beta_2=0.99)
-            #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.003)
-        elif iter <6:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0003, beta_1=0.9, beta_2=0.99)
+            #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.0001)
+        elif iter <16:
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000003, beta_1=0.9, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
         else:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.99)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000001, beta_1=0.9, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00003, rho=0.9)
         print(iter)
         tf_dataset = tf_dataset.shuffle(9600)
@@ -268,11 +272,12 @@ if __name__ == '__main__':
             communication_loss_list =[]
             print(tf.shape(batch))
             input_single = batch
-            communication_loss, output, CSI, gradients,crb_d,crb_angle = train_step(input_single,portions)
+            communication_loss, output, CSI, gradients,crb_d,crb_angle,combined_loss = train_step(input_single,portions)
 
-            print("Epoch: {}/{},losscomm: {},loss_d:{},loss_angle:{}".format(iter + 1, config_parameter.iters,
-                                                           communication_loss.numpy(),crb_d.numpy(),crb_angle.numpy()))
+            print("Epoch: {}/{},losscomm: {},loss_d:{},loss_angle:{},loss_combined_loss:{}".format(iter + 1, config_parameter.iters,
+                                                           communication_loss.numpy(),crb_d.numpy(),crb_angle.numpy(),combined_loss.numpy()))
 
+            portions = tf.divide([communication_loss, crb_d, crb_angle],(communication_loss+crb_d+crb_angle))
             file_path = "precoding_matrix.txt"
             crb_d_this.append(crb_d)
             communication_loss_list.append(communication_loss)
@@ -295,11 +300,11 @@ if __name__ == '__main__':
         n = tf.shape(sorted_data)[0]
         median_index = n // 2
         communication_loss_median = sorted_data[median_index]
-        sorted_data = tf.sort(crb_angle, axis=0)
+        sorted_data = tf.sort(crb_angle_this, axis=0)
         n = tf.shape(sorted_data)[0]
         median_index = n // 2
         crb_angle_median = sorted_data[median_index]
-        sorted_data = tf.sort(crb_d, axis=0)
+        sorted_data = tf.sort(crb_d_this, axis=0)
         n = tf.shape(sorted_data)[0]
         median_index = n // 2
         crb_d_median = sorted_data[median_index]
@@ -309,7 +314,7 @@ if __name__ == '__main__':
 
 
         timestep = list(range(1, len(sum_rate_list) + 1))
-        plt.plot(timestep, sum_rate_list, 'b-o')
+        plt.plot(timestep, crb_d_sum_list, 'b-o')
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
         plt.title('Loss vs Epoch')

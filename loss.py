@@ -194,15 +194,17 @@ def Conversion2input_small(angle,distance):
         zf_matrix[n,:,:] = zero_forcing(CSI[n,:,:]).T
         analog_rad,digital_part =svd_csi(CSI[n,:,:])
     input_whole = np.zeros(shape=(num_sample, num_vehicle,
-               6 * antenna_size))
+               8 * antenna_size))
     input_whole[:,:,0:1*antenna_size] = np.real(np.conjugate(steering_vector))
     input_whole[:,:,1*antenna_size:2*antenna_size] = np.imag(np.conjugate(steering_vector))
     input_whole[:,:,4*antenna_size:5*antenna_size] = np.real(zf_matrix)
     input_whole[:, :, 5 * antenna_size:6 * antenna_size] = np.imag(zf_matrix)
-
+    input_whole[:,:,6*antenna_size:7*antenna_size] = np.real(CSI)
+    input_whole[:, :, 7 * antenna_size:8 * antenna_size] = np.imag(CSI)
+    print(input_whole.shape)
     for i in range(0, antenna_size):
         input_whole[:, :, 2 * antenna_size + i] = theta.T
-        input_whole[:, :, 3 * antenna_size + i] = (real_distance/100).T
+        input_whole[:, :, 3 * antenna_size + i] = real_distance.T
 
     return input_whole
 def Conversion2input_small2(angle,distance):
@@ -489,6 +491,7 @@ def calculate_steer_vector(theta_list):
     return steering_vector
 def Path_loss(distance):
     pathloss = sqrt(config_parameter.alpha * ((distance / config_parameter.d0) ** config_parameter.path_loss_exponent))
+    #pathloss= pathloss.astype(np.float32)
     return pathloss
 def tf_Path_loss(distance):
     #distance as a list
@@ -811,8 +814,9 @@ def tf_sigma_delay_square(steering_vector_h, precoding_matrix_c,beta):
     #print("thissinr_b",this_sinr_b.numpy())
     #beta_n = tf.cast(tf.transpose(tf.abs(beta_c), perm=[0, 2, 1]), dtype=tf.complex64)
     beta_squ = tf.square(tf.abs(beta_c[:,:,0]))
-    beta_squ = tf.expand_dims(beta_squ, axis=-1)
 
+    beta_squ = tf.expand_dims(beta_squ, axis=-1)
+    #beta_squ = tf.fill(tf.shape(beta_squ),2.0)
     print("beta_squ",beta_squ)
     total = tf.multiply(beta_squ,
         tf.square(
@@ -831,10 +835,11 @@ def tf_sigma_delay_square(steering_vector_h, precoding_matrix_c,beta):
     #print("sum_all",sum_all.numpy())
     #sum_other = tf.squeeze(sum_other, axis=-1)
     #shape = tf.shape(CSI)
-    sum_other = G*(sum_all-this_sinr_b)
+    sum_other = tf.square(G)*(sum_all-this_sinr_b)
     #print("sum_other",sum_other.numpy())
-    this_sinr_gain = G * this_sinr_b
-    #print("this_sinr_gain",this_sinr_gain.numpy())
+    this_sinr_gain = tf.square(G) * this_sinr_b
+    print("this_sinr_gain",this_sinr_gain)
+    print("sum_other",sum_other + sigma_z)
     #output should be(batch,num_vehicle)
     return tf.square(rou_delay)* (sum_other + sigma_z)/this_sinr_gain
 
@@ -874,9 +879,9 @@ def tf_CRB_angle(beta,precoding_matrix,theta):
 
     #partial shape = (batch_size,vehicle)
     #partial_hermite = tf.transpose(tf.conj(partial), perm=[0, 2, 1])
-    partial_square = tf.multiply(partial, partial_h)
-    sigma_rk_inv = 1 / config_parameter.sigma_rk
-    CRB_theta = 1 / (sigma_rk_inv * partial_square) # I think it should be elementwise multiplication
+    partial_square = tf.square(tf.abs(partial))
+    #sigma_rk_inv = 1 / config_parameter.sigma_rk
+    CRB_theta = config_parameter.sigma_rk / partial_square # I think it should be elementwise multiplication
     #reciprocal = tf.math.reciprocal(tensor)
     abs_CRB_theta = tf.abs(CRB_theta)
     #shape = tf.shape(abs_CRB_theta)
