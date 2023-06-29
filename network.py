@@ -189,8 +189,11 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         self.conv_layer1 = Conv2D(32, kernel_size=1, activation=act_func, kernel_initializer=init, padding="same",kernel_regularizer=l2(1e-4))
         self.bn1 = keras.layers.BatchNormalization()
         self.maxpool1 = MaxPooling2D()
+        self.conv_layer7 = Conv2D(32, kernel_size=1, activation=act_func, kernel_initializer=init, padding="same",
+                                  kernel_regularizer=l2(1e-4))
+        self.bn7 = keras.layers.BatchNormalization()
         self.conv_layer2 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same",kernel_regularizer=l2(1e-4))
-        self.dropout2 = keras.layers.Dropout(0.25)
+        self.dropout2 = keras.layers.Dropout(0.2)
         self.bn2 = keras.layers.BatchNormalization()
         self.maxpool2 = MaxPooling2D()
         self.conv_layer3 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same",kernel_regularizer=l2(1e-4))
@@ -205,7 +208,7 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         self.conv_layer6 = Conv2D(256,kernel_size=3,activation=act_func,kernel_initializer=init,padding="same",kernel_regularizer=l2(1e-4))
         self.bn6 = keras.layers.BatchNormalization()
         self.maxpool5 = tf.keras.layers.GlobalAveragePooling2D()
-        self.dropout3 = keras.layers.Dropout(0.1)
+        self.dropout3 = keras.layers.Dropout(0.3)
 
         self.maxpool3 = MaxPooling2D()
         self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
@@ -218,7 +221,7 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         #self.dense_6 = Dense(20, activation=act_func, kernel_initializer=init)
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
         parameter_size = config_parameter.rf_size*config_parameter.vehicle_antenna_size + 2*config_parameter.rf_size*num_vehicle
-        parameter_size = 2 * config_parameter.vehicle_antenna_size * num_vehicle
+        #parameter_size = 2 * config_parameter.vehicle_antenna_size * num_vehicle
         #self.out = Dense(parameter_size, activation='softmax', kernel_initializer=init)
         #self.dense_4 = Dense(parameter_size, activation='softmax', kernel_initializer=init)
         #self.dense_4 = Dense(600, activation=act_func, kernel_initializer=init)
@@ -230,12 +233,14 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         out = self.conv_layer1(input)
         #out = self.maxpool1(out)
         out = self.bn1(out)
-        out = self.conv_layer2(out)
+        out = self.conv_layer7(out)
+        #out = self.bn7(out)
+        #out = self.conv_layer2(out)
 
         #out = self.maxpool2(out)
         #
         out = self.bn2(out)
-        #out = self.dropout2(out)
+        out = self.dropout2(out)
         out = self.conv_layer3(out)
 
         out = self.maxpool3(out)
@@ -247,9 +252,9 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         out =self.conv_layer5(out)
         #out = self.maxpool5(out)
         out =self.bn5(out)
-        out =self.conv_layer6(out)
+        #out =self.conv_layer6(out)
         #out = self.maxpool6(out)
-        out =self.bn6(out)
+        #out =self.bn6(out)
         out = self.dropout3(out)
         out = self.avgpool(out)
 
@@ -260,8 +265,8 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         #out = self.dense_2(out)
         #out = self.dense_3(out)
         #out = self.dense_4(out)
-        out = self.dense_1(out)
-        out = self.dense_2(out)
+        #out = self.dense_1(out)
+        #out = self.dense_2(out)
         out = self.fc(out)
         x = self.act(out)
         #x = tf.where(tf.math.greater(x, 0), tf.minimum(x, 5.0), tf.maximum(x, -5.0))

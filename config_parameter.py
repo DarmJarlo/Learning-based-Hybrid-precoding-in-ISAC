@@ -1,4 +1,11 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 mode = "V2V"
 #mode = "V2I"
@@ -47,7 +54,7 @@ Radar_measure_slot = 0.1 #s
 length_echo = 0.005  # length of echo ms
 power = 1
 
-fading_coefficient = 0.1 + 0.1*1j
+fading_coefficient = 0.5 + 0.5*1j
 """這裏越小，zf的crb越大，因爲zf的幹擾永遠爲0，這個參數越小的話，sinr數量級越小，zf的crb越大"""
 """同樣的，pathloss越小，zf的sumrate越小，因爲sinr的數量級越小，zf的sumrate越小"""
 #calculation for doppler_frequency
@@ -76,12 +83,12 @@ train_initial_location_min = 30
 train_initial_location_max = 120
 
 #setup for metrics
-rf_size = 4
+rf_size = 6
 antenna_size = 16
 vehicle_antenna_size = 16
 receiver_antenna_size = 1
-sigma_k = 1e-8
-sigma_z = 1e-8
+sigma_k = 1e-7
+sigma_z = 1e-7
 
 
 #path loss parameters
@@ -99,16 +106,16 @@ sampling_rate = 1000
 bandwidth = 1e6  # bandwidth of the chirp signal in Hz
 pulse_duration = 10e-6  # pulse duration in seconds
 R_max = 200  # maximum range in meters
-Signal_noise_power = 0.1#noise for echo signal
+Signal_noise_power = 1e-5#noise for echo signal
 sigma_rk = Signal_noise_power
-rou_timedelay = 3e-8
-rou_dopplershift = 3e-8
+rou_timedelay = 1e-8
+rou_dopplershift = 1e-8
 
 
 
 
-#loss_mode = "Upper_sum_rate"   # three mode
-loss_mode = "lower_bound_crb"
+loss_mode = "Upper_sum_rate"   # three mode
+#loss_mode = "lower_bound_crb"
 #loss_mode = "combined_loss"
 
 

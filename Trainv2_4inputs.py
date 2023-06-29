@@ -27,12 +27,12 @@ def load_model():
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
 
-    model.build(input_shape=(None, num_vehicle,128,1))
+    model.build(input_shape=(None, num_vehicle,96,1))
 
     model.summary()
     if config_parameter.FurtherTrain ==True:
         #model = tf.saved_model.load('Keras_models/new_model')
-        model.load_weights(filepath='Keras_models_digital_onlycommunication/new_model')
+        model.load_weights(filepath='Keras_models_hybrid_onlycrb_angle/new_model')
     return model
 
 
@@ -107,7 +107,7 @@ if __name__ == '__main__':
             shape = tf.shape(input)
 
             batch_size= shape[0]
-            #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+            Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
             #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,\
                 #                                                                   analog_ref=analog_rad,\
                  #                                                                  digital_ref=digital_ref)
@@ -117,17 +117,19 @@ if __name__ == '__main__':
             ##
             #
             #
-            # precoding_matrix = loss.tf_Precoding_matrix_comb_Powerallocated(Analog_matrix, Digital_matrix,distance[:,:,0])
+            precoding_matrix = loss.tf_Precoding_matrix_comb_Powerallocated(Analog_matrix, Digital_matrix,distance[:,:,0])
             ##
             # #
             # precoding_matrix = loss.tf_Precoding_comb_no_powerconstarint(Analog_matrix, Digital_matrix)
-            precoding_matrix = loss.tf_Output2digitalPrecoding(output,None,distance[:,:,0])
+            zf_matrix = tf.complex(input[:, :, 4 * antenna_size:5 * antenna_size, 0],
+                                   input[:, :, 5 * antenna_size:6 * antenna_size, 0])
+            #precoding_matrix = loss.tf_Output2digitalPrecoding(output,zf_matrix,distance[:,:,0])
             pathloss = loss.tf_Path_loss(input[:,:,2*antenna_size,0])
             #below is the real right steering vector
             steering_vector_this = tf.transpose(steering_vector_this_o, perm=[0, 2, 1])
             #CSI = tf.complex(input[:,:,2*antenna_size:3*antenna_size,0], input[:,:,3*antenna_size:4*antenna_size,0])
             #CSi here shape is (BATCH,NUMVEHICLE,ANTENNAS)
-            zf_matrix = tf.complex(input[:,:,4*antenna_size:5*antenna_size,0], input[:,:,5*antenna_size:6*antenna_size,0])
+
             #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output,zf_matrix=zf_matrix)
             #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
             zf_sumrate,zf_sinr = loss.tf_loss_sumrate(CSI,tf.transpose(zf_matrix,perm=[0,2,1]))
@@ -183,7 +185,7 @@ if __name__ == '__main__':
             #CRB_angle_zf = loss.tf_CRB_angle(beta,tf.transpose(zf_matrix,perm=[0,2,1]),theta)
             CRB_d = tf.cast(CRB_d, tf.float64)
             CRB_angle = tf.cast(CRB_angle, tf.float64)
-            crb_combined_loss = CRB_d*1 +CRB_angle*0
+            crb_combined_loss = CRB_d*0 + CRB_angle*1
             #power = tf.constant(config_parameter.power, dtype=tf.float64)
             #power_error = tf.reduce_sum(tf.abs(precoding_matrix), axis=(1, 2)) - power
             #power_error = tf.cast(power_error, tf.float32)
@@ -196,7 +198,7 @@ if __name__ == '__main__':
             #crb_combined_loss = tf.cast(crb_combined_loss, tf.float32)
             #crb_combined_loss = -1000/(tf.reduce_sum(crb_combined_loss)/(batch_size*num_vehicle))
             #crb_combined_loss = tf.reduce_sum(crb_combined_loss) / (batch_size * num_vehicle)
-            combined_loss = tf.reduce_sum(portions[1]*CRB_d+portions[2]*CRB_angle -portions[0]*sum_rate_this,axis=0)/batch_size
+            combined_loss = tf.reduce_sum(-portions[1]/CRB_d+portions[2]*CRB_angle -portions[0]*sum_rate_this,axis=0)/batch_size
             #combined_loss = 1e15*mse_value
             #crb_loss =
 
@@ -228,6 +230,7 @@ if __name__ == '__main__':
 
     sum_rate_list_reciprocal = []  # the sum rate at all timepoints in this list
     sum_rate_list = []
+    combined = []
     angle, distance = loss.load_data()
     input_whole = loss.Conversion2input_small(angle, distance)
     #input_whole = loss.Conversion2input_small2(angle, distance)
@@ -245,31 +248,32 @@ if __name__ == '__main__':
     #profiler.start()
     crb_d_median = 1
     crb_angle_median = 1
-    sum_rate_median = 1
+    communication_loss_median = 1
     for iter in range(0, config_parameter.iters):
 
         #iter += 7
-        if iter < 5:
+        if iter < 2:
             #optimizer_1 = tf.keras.optimizers.SGD(learning_rate=0.00003, momentum=0.9, nesterov=False)
-            optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
-            #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.99)
+            #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.0001, rho=0.9)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0002, beta_1=0.9, beta_2=0.99)
         #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003, beta_1=0.91, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.0001)
-        elif iter <16:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000003, beta_1=0.9, beta_2=0.99)
+        elif iter <6:
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00003, beta_1=0.9, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
         else:
             optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000001, beta_1=0.9, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00003, rho=0.9)
         print(iter)
         tf_dataset = tf_dataset.shuffle(9600)
-
-        portions = tf.divide([sum_rate_median, crb_d_median, crb_angle_median],(sum_rate_median+crb_d_median+crb_angle_median))
+        portions = [1,5,20]
+        #portions = tf.divide([sum_rate_median, crb_d_median, crb_angle_median],(sum_rate_median+crb_d_median+crb_angle_median))
         #tf_dataset = tf_dataset.batch(config_parameter.batch_size)
         for batch in tf_dataset:
             crb_angle_this = []
             crb_d_this = []
             communication_loss_list =[]
+            combined_list = []
             print(tf.shape(batch))
             input_single = batch
             communication_loss, output, CSI, gradients,crb_d,crb_angle,combined_loss = train_step(input_single,portions)
@@ -277,11 +281,14 @@ if __name__ == '__main__':
             print("Epoch: {}/{},losscomm: {},loss_d:{},loss_angle:{},loss_combined_loss:{}".format(iter + 1, config_parameter.iters,
                                                            communication_loss.numpy(),crb_d.numpy(),crb_angle.numpy(),combined_loss.numpy()))
 
-            portions = tf.divide([communication_loss, crb_d, crb_angle],(communication_loss+crb_d+crb_angle))
+            #portions = tf.divide([communication_loss, crb_d, crb_angle],(communication_loss+crb_d+crb_angle))
+
+            #portions = [1, -communication_loss / crb_d, -communication_loss / crb_angle]
             file_path = "precoding_matrix.txt"
             crb_d_this.append(crb_d)
             communication_loss_list.append(communication_loss)
             crb_angle_this.append(crb_angle)
+            combined_list.append(combined_loss)
             with open(file_path, "w") as file:
                 file.write("output")
                 file.write(str(output.numpy()) + "\n")
@@ -299,7 +306,7 @@ if __name__ == '__main__':
         sorted_data = tf.sort(communication_loss_list, axis=0)
         n = tf.shape(sorted_data)[0]
         median_index = n // 2
-        communication_loss_median = sorted_data[median_index]
+        communication_loss_median = -sorted_data[median_index]
         sorted_data = tf.sort(crb_angle_this, axis=0)
         n = tf.shape(sorted_data)[0]
         median_index = n // 2
@@ -307,19 +314,76 @@ if __name__ == '__main__':
         sorted_data = tf.sort(crb_d_this, axis=0)
         n = tf.shape(sorted_data)[0]
         median_index = n // 2
+
         crb_d_median = sorted_data[median_index]
-        crb_angle_sum_list.append(crb_angle_median)
-        crb_d_sum_list.append(crb_d_median)
-        sum_rate_list.append(-communication_loss_median)
+        crb_angle_sum_list.append(tf.reduce_mean(crb_angle_this))
+        crb_d_sum_list.append(tf.reduce_mean(crb_d_this))
+        sum_rate_list.append(-tf.reduce_mean(communication_loss_list))
+        combined.append(tf.reduce_mean(combined_list))
+
 
 
         timestep = list(range(1, len(sum_rate_list) + 1))
-        plt.plot(timestep, crb_d_sum_list, 'b-o')
+
+        # 第一个折线数据
+
+
+        fig, ax1 = plt.subplots()
+        ax1.plot(timestep, sum_rate_list, 'b-', label='sum rate')
+        ax1.set_xlabel('Epoch')
+        ax1.set_ylabel('sum rate(bits/s/hz)', color='b')
+        ax1.tick_params('y', colors='b')
+
+        # 创建第二个纵坐标轴
+        ax2 = ax1.twinx()
+        # 第二个折线数据
+        ax2.plot(timestep, crb_d_sum_list, 'r-', label='crb_distance')
+        ax2.set_ylabel('CRB distance ', color='r')
+        ax2.tick_params('y', colors='r')
+
+        # 创建第三个纵坐标轴
+        ax3 = ax1.twinx()
+        ax3.spines['right'].set_position(('outward', 70))  # 将第三个纵坐标轴移到右侧
+        # 第三个折线数据
+        #y3 = 0.5 * x
+        ax3.plot(timestep, crb_angle_sum_list, 'g-', label='crb_angle')
+        ax3.set_ylabel('CRB angle', color='g')
+        ax3.tick_params('y', colors='g')
+
+        # 创建第四个纵坐标轴
+        ax4 = ax3.twinx()
+        #ax4.spines['left'].set_position(('outward', 80))  # 将第四个纵坐标轴移到右侧
+        # 第四个折线数据
+        #y4 = -x ** 2
+        #ax4 = ax3.twinx()
+        #ax4.plot(timestep, combined, 'm-', label='combined_loss')
+        #ax4.set_ylabel('combined_loss', color='m')
+        #ax4.tick_params('y', colors='m')
+
+        # 调整图形布局，使得所有纵坐标轴都可见
+        fig.tight_layout()
+
+        # 添加图例
+        lines = [ax1.get_lines()[0], ax2.get_lines()[0], ax3.get_lines()[0],ax4.get_lines()[0]
+        #lines = [ax1.get_lines()[0], ax3.get_lines()[0]]
+        labels = [line.get_label() for line in lines]
+        ax1.legend(lines, labels)
+
+        plt.show()
+
+
+
+        '''
+        plt.plot(timestep, crb_d_sum_list, 'b-o',label='CRB_distance')
+        plt.plot(timestep, crb_angle_sum_list, 'r-o',label='CRB_angle')
+        plt.plot(timestep, sum_rate_list, 'g-o',label='Sum_rate')
+        plt.legend()
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
         plt.title('Loss vs Epoch')
         plt.grid(True)
         plt.show()
+        '''
         #plt.plot(timestep, crb_d_sum_list, 'b-o')
         #plt.xlabel('Epoch')
         #plt.ylabel('Loss')
@@ -327,12 +391,12 @@ if __name__ == '__main__':
         #plt.grid(True)
         #plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='Keras_models_digital_onlycommunication/new_model', save_format='tf')
+        model.save_weights(filepath='Keras_models_hybrid_combine1/new_model', save_format='tf')
         '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''
         # tf.saved_model.save(model, )
-    model.save_weights(filepath='Keras_models_digital_onlycommunication/new_model', save_format='tf')
+    model.save_weights(filepath='Keras_models_hybrid_onlycrb_d/new_model', save_format='tf')
     #profiler.stop()
 
 
