@@ -32,7 +32,7 @@ def load_model():
     model.summary()
     if config_parameter.FurtherTrain ==True:
         #model = tf.saved_model.load('Keras_models/new_model')
-        model.load_weights(filepath='Keras_models_hybrid_onlycrb_angle/new_model')
+        model.load_weights(filepath='Keras_models_hybrid_combine1/new_model')
     return model
 
 
@@ -337,37 +337,38 @@ if __name__ == '__main__':
         # 创建第二个纵坐标轴
         ax2 = ax1.twinx()
         # 第二个折线数据
-        ax2.plot(timestep, crb_d_sum_list, 'r-', label='crb_distance')
+        ax2.plot(timestep, crb_d_sum_list, 'r:', label='crb_distance')
         ax2.set_ylabel('CRB distance ', color='r')
         ax2.tick_params('y', colors='r')
 
         # 创建第三个纵坐标轴
         ax3 = ax1.twinx()
-        ax3.spines['right'].set_position(('outward', 70))  # 将第三个纵坐标轴移到右侧
+        ax3.spines['right'].set_position(('outward', 50))  # 将第三个纵坐标轴移到右侧
         # 第三个折线数据
         #y3 = 0.5 * x
-        ax3.plot(timestep, crb_angle_sum_list, 'g-', label='crb_angle')
+        ax3.plot(timestep, crb_angle_sum_list, 'g--', label='crb_angle')
         ax3.set_ylabel('CRB angle', color='g')
         ax3.tick_params('y', colors='g')
 
         # 创建第四个纵坐标轴
-        ax4 = ax3.twinx()
-        #ax4.spines['left'].set_position(('outward', 80))  # 将第四个纵坐标轴移到右侧
+        ax4 = ax1.twinx()
+        ax4.spines['right'].set_position(('outward', 100))
+        ax4.spines['right'].set_visible(True)# 将第四个纵坐标轴移到右侧
         # 第四个折线数据
         #y4 = -x ** 2
         #ax4 = ax3.twinx()
-        #ax4.plot(timestep, combined, 'm-', label='combined_loss')
-        #ax4.set_ylabel('combined_loss', color='m')
-        #ax4.tick_params('y', colors='m')
+        ax4.plot(timestep, combined, 'm-.', label='combined_loss')
+        ax4.set_ylabel('combined_loss', color='m')
+        ax4.tick_params('y', colors='m')
 
         # 调整图形布局，使得所有纵坐标轴都可见
         fig.tight_layout()
 
         # 添加图例
-        lines = [ax1.get_lines()[0], ax2.get_lines()[0], ax3.get_lines()[0],ax4.get_lines()[0]
+        lines = [ax1.get_lines()[0], ax2.get_lines()[0], ax3.get_lines()[0],ax4.get_lines()[0]]
         #lines = [ax1.get_lines()[0], ax3.get_lines()[0]]
         labels = [line.get_label() for line in lines]
-        ax1.legend(lines, labels)
+        ax1.legend(lines, labels, bbox_to_anchor=(0.5, 0.9), loc='best')
 
         plt.show()
 
@@ -391,7 +392,7 @@ if __name__ == '__main__':
         #plt.grid(True)
         #plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='Keras_models_hybrid_combine1/new_model', save_format='tf')
+        model.save_weights(filepath='Keras_models_hybrid_combine/new_model', save_format='tf')
         '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''

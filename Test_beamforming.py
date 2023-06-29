@@ -23,7 +23,7 @@ def translate_precoding_matrix(matrix):
     return translated_matrix
 import math
 model = load_model()
-model.load_weights(filepath='Keras_models_hybrid_onlycrb_angle/new_model')
+model.load_weights(filepath='Keras_models_hybrid_combine1/new_model')
 if config_parameter.mode == "V2I":
     antnna_size = config_parameter.antenna_size
     num_vehicle = config_parameter.num_vehicle
