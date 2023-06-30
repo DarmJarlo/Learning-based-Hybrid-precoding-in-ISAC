@@ -59,7 +59,7 @@ fading_coefficient = 0.5 + 0.5*1j
 """同樣的，pathloss越小，zf的sumrate越小，因爲sinr的數量級越小，zf的sumrate越小"""
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
-FurtherTrain = False
+FurtherTrain = True
 
 #these are for the simulation test
 speed_low = 20
@@ -106,17 +106,17 @@ sampling_rate = 1000
 bandwidth = 1e6  # bandwidth of the chirp signal in Hz
 pulse_duration = 10e-6  # pulse duration in seconds
 R_max = 200  # maximum range in meters
-Signal_noise_power = 1e-5#noise for echo signal
+Signal_noise_power = 1e-6#noise for echo signal
 sigma_rk = Signal_noise_power
-rou_timedelay = 1e-8
-rou_dopplershift = 1e-8
+rou_timedelay = 2e-8
+rou_dopplershift = 2e-8
 
 
 
 
-loss_mode = "Upper_sum_rate"   # three mode
+#loss_mode = "Upper_sum_rate"   # three mode
 #loss_mode = "lower_bound_crb"
-#loss_mode = "combined_loss"
+loss_mode = "combined_loss"
 
 
 #below are the parameter for v2v

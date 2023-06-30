@@ -32,7 +32,7 @@ def load_model():
     model.summary()
     if config_parameter.FurtherTrain ==True:
         #model = tf.saved_model.load('Keras_models/new_model')
-        model.load_weights(filepath='Keras_models_hybrid_combine1/new_model')
+        model.load_weights(filepath='Keras_models_hybrid_onlycommfinal/new_model')
     return model
 
 
@@ -185,7 +185,7 @@ if __name__ == '__main__':
             #CRB_angle_zf = loss.tf_CRB_angle(beta,tf.transpose(zf_matrix,perm=[0,2,1]),theta)
             CRB_d = tf.cast(CRB_d, tf.float64)
             CRB_angle = tf.cast(CRB_angle, tf.float64)
-            crb_combined_loss = CRB_d*0 + CRB_angle*1
+            crb_combined_loss = 0*CRB_d + CRB_angle*1000
             #power = tf.constant(config_parameter.power, dtype=tf.float64)
             #power_error = tf.reduce_sum(tf.abs(precoding_matrix), axis=(1, 2)) - power
             #power_error = tf.cast(power_error, tf.float32)
@@ -198,7 +198,7 @@ if __name__ == '__main__':
             #crb_combined_loss = tf.cast(crb_combined_loss, tf.float32)
             #crb_combined_loss = -1000/(tf.reduce_sum(crb_combined_loss)/(batch_size*num_vehicle))
             #crb_combined_loss = tf.reduce_sum(crb_combined_loss) / (batch_size * num_vehicle)
-            combined_loss = tf.reduce_sum(-portions[1]/CRB_d+portions[2]*CRB_angle -portions[0]*sum_rate_this,axis=0)/batch_size
+            combined_loss = tf.reduce_sum(portions[1]*CRB_d+portions[2]*CRB_angle -portions[0]*sum_rate_this,axis=0)/batch_size
             #combined_loss = 1e15*mse_value
             #crb_loss =
 
@@ -252,21 +252,23 @@ if __name__ == '__main__':
     for iter in range(0, config_parameter.iters):
 
         #iter += 7
-        if iter < 2:
+        if iter < 1:
+            #portions = [1, 1, 30]
             #optimizer_1 = tf.keras.optimizers.SGD(learning_rate=0.00003, momentum=0.9, nesterov=False)
-            #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.0001, rho=0.9)
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0002, beta_1=0.9, beta_2=0.99)
+            #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00001, beta_1=0.9, beta_2=0.99)
         #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003, beta_1=0.91, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.0001)
-        elif iter <6:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00003, beta_1=0.9, beta_2=0.99)
+        elif iter <3:
+            #portions = [1, 10, 30]
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000003, beta_1=0.9, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
         else:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000001, beta_1=0.9, beta_2=0.99)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00000001, beta_1=0.9, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00003, rho=0.9)
         print(iter)
         tf_dataset = tf_dataset.shuffle(9600)
-        portions = [1,5,20]
+        portions = [1,2,2e4]
         #portions = tf.divide([sum_rate_median, crb_d_median, crb_angle_median],(sum_rate_median+crb_d_median+crb_angle_median))
         #tf_dataset = tf_dataset.batch(config_parameter.batch_size)
         for batch in tf_dataset:
@@ -327,7 +329,7 @@ if __name__ == '__main__':
 
         # 第一个折线数据
 
-
+        '''
         fig, ax1 = plt.subplots()
         ax1.plot(timestep, sum_rate_list, 'b-', label='sum rate')
         ax1.set_xlabel('Epoch')
@@ -351,9 +353,11 @@ if __name__ == '__main__':
         ax3.tick_params('y', colors='g')
 
         # 创建第四个纵坐标轴
-        ax4 = ax1.twinx()
-        ax4.spines['right'].set_position(('outward', 100))
-        ax4.spines['right'].set_visible(True)# 将第四个纵坐标轴移到右侧
+        '''
+        #ax4 = ax1.twinx()
+        fig, ax4 = plt.subplots()
+        #ax4.spines['right'].set_position(('outward', 100))
+        #ax4.spines['right'].set_visible(True)# 将第四个纵坐标轴移到右侧
         # 第四个折线数据
         #y4 = -x ** 2
         #ax4 = ax3.twinx()
@@ -365,10 +369,10 @@ if __name__ == '__main__':
         fig.tight_layout()
 
         # 添加图例
-        lines = [ax1.get_lines()[0], ax2.get_lines()[0], ax3.get_lines()[0],ax4.get_lines()[0]]
-        #lines = [ax1.get_lines()[0], ax3.get_lines()[0]]
+        #lines = [ax1.get_lines()[0], ax2.get_lines()[0], ax3.get_lines()[0]]
+        lines = [ax4.get_lines()[0]]
         labels = [line.get_label() for line in lines]
-        ax1.legend(lines, labels, bbox_to_anchor=(0.5, 0.9), loc='best')
+        ax4.legend(lines, labels, bbox_to_anchor=(0.5, 0.9), loc='best')
 
         plt.show()
 
@@ -392,7 +396,7 @@ if __name__ == '__main__':
         #plt.grid(True)
         #plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='Keras_models_hybrid_combine/new_model', save_format='tf')
+        model.save_weights(filepath='Keras_models_hybrid_combinefinal/new_model', save_format='tf')
         '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''

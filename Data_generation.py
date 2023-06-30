@@ -19,8 +19,9 @@ angles_3 = np.random.uniform(0.6*np.pi, 0.7*np.pi, size=(num_samples, 1))
 angles_4 = np.random.uniform(0.7*np.pi, 0.8*np.pi, size=(num_samples, 1))
 angles = np.concatenate((angles_1, angles_2, angles_3,angles_4), axis=1)
 distances = np.random.uniform(1000, 3000, size=(num_samples, num_vehicle))
-#angles = np.random.uniform(0.15*np.pi, 0.85*np.pi, size=(num_samples, num_vehicle))
+angles = np.random.uniform(0.2*np.pi, 0.8*np.pi, size=(num_samples, num_vehicle))
 # Combine angles and distances into a single array
+angles = np.sort(angles, axis=1)
 data = np.concatenate((angles, distances), axis=1)
 
 # Shuffle the data
