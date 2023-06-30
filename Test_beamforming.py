@@ -23,7 +23,7 @@ def translate_precoding_matrix(matrix):
     return translated_matrix
 import math
 model = load_model()
-model.load_weights(filepath='Keras_models_hybrid_combineend1/new_model')
+model.load_weights(filepath='Keras_models_digitalwith_sumratefinal/new_model')
 if config_parameter.mode == "V2I":
     antnna_size = config_parameter.antenna_size
     num_vehicle = config_parameter.num_vehicle
@@ -34,7 +34,7 @@ elif config_parameter.mode == "V2V":
 angle,distance = loss.load_data()
 selected_angle = angle[0:config_parameter.batch_size,:]
 selected_distance = distance[0:config_parameter.batch_size,:]
-input_single= loss.Conversion2input_small3(selected_angle,selected_distance)
+input_single= loss.Conversion2input_small(selected_angle,selected_distance)
 input_single = tf.expand_dims(input_single, axis=3)
 
 
@@ -56,13 +56,13 @@ digital_ref = tf.complex(input_single[:, 0:config_parameter.rf_size, \
                          input_single[:, :, 5 * antenna_size:5 * antenna_size + num_vehicle, 0])  # (4,4)  also transposed
 
 #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output, analog_ref=analog_rad,digital_ref=digital_ref)
-Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+#Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
 zf_precoding = tf.complex(input_single[:, :, 4 * antenna_size:5 * antenna_size, 0],
                                    input_single[:, :, 5 * antenna_size:6 * antenna_size, 0])
-precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix=Analog_matrix, Digital_matrix=Digital_matrix)
+#precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix=Analog_matrix, Digital_matrix=Digital_matrix)
 
-precoding_matrix = loss.tf_Precoding_matrix_comb_Powerallocated(Analog_matrix, Digital_matrix,distance[:,:,0])
-#precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output, zf_matrix=zf_precoding,distance=distance[:,:,0])
+#precoding_matrix = loss.tf_Precoding_matrix_comb_Powerallocated(Analog_matrix, Digital_matrix,distance[:,:,0])
+precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output, zf_matrix=zf_precoding,distance=distance[:,:,0])
 #print("Analog_matrix",Analog_matrix[3])
 #print("Digital_matrix",Digital_matrix[3])
 

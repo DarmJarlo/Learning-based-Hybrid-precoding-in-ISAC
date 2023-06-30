@@ -220,8 +220,8 @@ class DL_method_NN_for_v2x_hybrid(keras.Model):
         #self.dense_5 = Dense(20, activation=act_func, kernel_initializer=init)
         #self.dense_6 = Dense(20, activation=act_func, kernel_initializer=init)
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
-        parameter_size = config_parameter.rf_size*config_parameter.vehicle_antenna_size + 2*config_parameter.rf_size*num_vehicle
-        #parameter_size = 2 * config_parameter.vehicle_antenna_size * num_vehicle
+        #parameter_size = config_parameter.rf_size*config_parameter.vehicle_antenna_size + 2*config_parameter.rf_size*num_vehicle
+        parameter_size = 2 * config_parameter.vehicle_antenna_size * num_vehicle
         #self.out = Dense(parameter_size, activation='softmax', kernel_initializer=init)
         #self.dense_4 = Dense(parameter_size, activation='softmax', kernel_initializer=init)
         #self.dense_4 = Dense(600, activation=act_func, kernel_initializer=init)

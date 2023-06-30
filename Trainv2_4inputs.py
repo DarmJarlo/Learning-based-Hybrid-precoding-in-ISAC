@@ -32,7 +32,7 @@ def load_model():
     model.summary()
     if config_parameter.FurtherTrain ==True:
         #model = tf.saved_model.load('Keras_models/new_model')
-        model.load_weights(filepath='Keras_models_hybrid_onlycommfinal/new_model')
+        model.load_weights(filepath='Keras_models_digitalwith_sumratefinal/new_model')
     return model
 
 
@@ -102,28 +102,32 @@ if __name__ == '__main__':
             CSI = tf.multiply(tf.cast(tf.multiply(G, pathloss),dtype=tf.complex128), steering_vector_this_o)
             CSI = tf.complex(input[:, :, 6*antenna_size:7*antenna_size, 0], input[:, :, 7*antenna_size:8 * antenna_size, 0])
             #zf_matrix = loss.tf_zero_forcing(CSI)
-
-
+            zf_matrix = tf.complex(input[:, :, 4 * antenna_size:5 * antenna_size, 0],
+                                   input[:, :, 5 * antenna_size:6 * antenna_size, 0])
+            #zf_matrix = loss.tf_zero_forcing(CSI)
             shape = tf.shape(input)
 
             batch_size= shape[0]
-            Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
-            #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,\
+            if config_parameter.digital == True:
+                #precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output,zf_matrix=None,distance=None)
+                precoding_matrix = loss.tf_Output2digitalPrecoding(output, zf_matrix, distance[:, :, 0])
+            else:
+                Analog_matrix, Digital_matrix = loss.tf_Output2digitalPrecoding(Output=output,zf_matrix=zf_matrix,distance=distance)
+                #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,\
                 #                                                                   analog_ref=analog_rad,\
                  #                                                                  digital_ref=digital_ref)
 
 
-            #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
-            ##
+                #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
+                ##
             #
             #
-            precoding_matrix = loss.tf_Precoding_matrix_comb_Powerallocated(Analog_matrix, Digital_matrix,distance[:,:,0])
+                precoding_matrix = loss.tf_Precoding_matrix_comb_Powerallocated(Analog_matrix, Digital_matrix,distance[:,:,0])
             ##
             # #
             # precoding_matrix = loss.tf_Precoding_comb_no_powerconstarint(Analog_matrix, Digital_matrix)
-            zf_matrix = tf.complex(input[:, :, 4 * antenna_size:5 * antenna_size, 0],
-                                   input[:, :, 5 * antenna_size:6 * antenna_size, 0])
-            #precoding_matrix = loss.tf_Output2digitalPrecoding(output,zf_matrix,distance[:,:,0])
+
+            #
             pathloss = loss.tf_Path_loss(input[:,:,2*antenna_size,0])
             #below is the real right steering vector
             steering_vector_this = tf.transpose(steering_vector_this_o, perm=[0, 2, 1])
@@ -185,7 +189,7 @@ if __name__ == '__main__':
             #CRB_angle_zf = loss.tf_CRB_angle(beta,tf.transpose(zf_matrix,perm=[0,2,1]),theta)
             CRB_d = tf.cast(CRB_d, tf.float64)
             CRB_angle = tf.cast(CRB_angle, tf.float64)
-            crb_combined_loss = 0*CRB_d + CRB_angle*1000
+            crb_combined_loss = 0*CRB_d + CRB_angle*10000
             #power = tf.constant(config_parameter.power, dtype=tf.float64)
             #power_error = tf.reduce_sum(tf.abs(precoding_matrix), axis=(1, 2)) - power
             #power_error = tf.cast(power_error, tf.float32)
@@ -252,14 +256,14 @@ if __name__ == '__main__':
     for iter in range(0, config_parameter.iters):
 
         #iter += 7
-        if iter < 1:
+        if iter < 4:
             #portions = [1, 1, 30]
             #optimizer_1 = tf.keras.optimizers.SGD(learning_rate=0.00003, momentum=0.9, nesterov=False)
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00001, beta_1=0.9, beta_2=0.99)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00002, beta_1=0.9, beta_2=0.99)
         #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003, beta_1=0.91, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.0001)
-        elif iter <3:
+        elif iter <15:
             #portions = [1, 10, 30]
             optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000003, beta_1=0.9, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
@@ -268,7 +272,7 @@ if __name__ == '__main__':
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00003, rho=0.9)
         print(iter)
         tf_dataset = tf_dataset.shuffle(9600)
-        portions = [1,2,2e4]
+        portions = [1,20,4e4]
         #portions = tf.divide([sum_rate_median, crb_d_median, crb_angle_median],(sum_rate_median+crb_d_median+crb_angle_median))
         #tf_dataset = tf_dataset.batch(config_parameter.batch_size)
         for batch in tf_dataset:
@@ -329,7 +333,7 @@ if __name__ == '__main__':
 
         # 第一个折线数据
 
-        '''
+
         fig, ax1 = plt.subplots()
         ax1.plot(timestep, sum_rate_list, 'b-', label='sum rate')
         ax1.set_xlabel('Epoch')
@@ -364,15 +368,15 @@ if __name__ == '__main__':
         ax4.plot(timestep, combined, 'm-.', label='combined_loss')
         ax4.set_ylabel('combined_loss', color='m')
         ax4.tick_params('y', colors='m')
-
+        '''
         # 调整图形布局，使得所有纵坐标轴都可见
         fig.tight_layout()
 
         # 添加图例
-        #lines = [ax1.get_lines()[0], ax2.get_lines()[0], ax3.get_lines()[0]]
-        lines = [ax4.get_lines()[0]]
+        lines = [ax1.get_lines()[0], ax2.get_lines()[0], ax3.get_lines()[0]]
+        #lines = [ax4.get_lines()[0]]
         labels = [line.get_label() for line in lines]
-        ax4.legend(lines, labels, bbox_to_anchor=(0.5, 0.9), loc='best')
+        ax1.legend(lines, labels, bbox_to_anchor=(0.5, 0.9), loc='best')
 
         plt.show()
 
@@ -396,7 +400,7 @@ if __name__ == '__main__':
         #plt.grid(True)
         #plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='Keras_models_hybrid_combinefinal/new_model', save_format='tf')
+        model.save_weights(filepath='Keras_models_digitalwith_combinefinal/new_model', save_format='tf')
         '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''

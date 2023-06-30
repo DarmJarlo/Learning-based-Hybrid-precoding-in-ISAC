@@ -223,16 +223,32 @@ def generate_input_v2i():
 
     print("initial location", initial_location_x)
     return real_distance_list,real_theta
+def comparison_between_sumrate(combined):
+    model1 = load_model_hybrid()
+    model2 = load_model_digitalwith()
+    model3 = load_model_digitalwithout()
+    model4 = load_model_only_communication_hybrid()
+    model5 = load_model_only_communication_digitalwith()
+    model6 = load_model_only_communication_digitalwithout()
+    output1 = model1(combined)
+    output2 = model2(combined)
+    output3 = model3(combined)
+    output4 = model4(combined)
+    output5 = model3(combined)
+    output6 = model4(combined)
+
 def eva(Test):
     if Test == "V2V":
         real_distance, real_theta = generate_input_v2v()
     elif Test == "V2I":
         real_distance, real_theta = generate_input_v2i()
-    combined = loss.Conversion2CSI(real_distance, real_theta)
+    #combined = loss.Conversion2CSI(real_distance, real_theta)
     combined = loss.Conversion2input_small(real_theta, real_distance)
     # this one output the CSI and zf matrix
     zf_matrix = tf.complex(combined[:,:,2*antenna_size:3*antenna_size],combined[:,:,3*antenna_size:4*antenna_size])
-    CSI = tf.complex(combined[:,:,0:antenna_size],combined[:,:,antenna_size:2*antenna_size])
+    #CSI = tf.complex(combined[:,:,0:antenna_size],combined[:,:,antenna_size:2*antenna_size])
+    CSI = tf.complex(input[:, :, 6 * antenna_size:7 * antenna_size, 0],
+                     input[:, :, 7 * antenna_size:8 * antenna_size, 0])
     model1 = load_model_hybrid()
     model2 = load_model_digital()
     model3 = load_model_only_communication_hybrid()
@@ -243,7 +259,7 @@ def eva(Test):
     output4 = model4(combined)
     analog1,digital1 = loss.tf_Output2PrecodingMatrix_rad(output1)
     precoder1 = loss.tf_Precoding_matrix_combine(analog1,digital1)
-    precoder2 = loss.tf_Output2digitalPrecoding(output2)
+    precoder2 = loss.tf_Output2digitalPrecoding(output2,zf_matrix=zf_matrix)
     analog2,digital2 = loss.tf_Output2PrecodingMatrix(output3)
     precoder3 = loss.tf_Precoding_matrix_combine(analog2,digital2)
     precoder4 = loss.tf_Output2digitalPrecoding(output4)

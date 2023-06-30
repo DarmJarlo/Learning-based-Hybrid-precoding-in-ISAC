@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import numpy as np
 
-
+digital = True
 mode = "V2V"
 #mode = "V2I"
 # some training parameters
