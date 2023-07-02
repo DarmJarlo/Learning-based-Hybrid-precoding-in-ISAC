@@ -21,8 +21,8 @@ sys.path.append("..")
 import numpy as np
 #tf.compat.v1.enable_eager_execution()
 def load_model():
-    #model = DL_method_NN_for_v2x_mod()
-    model = DL_method_NN_for_v2x_hybrid()
+    model = DL_method_NN_for_v2x_mod()
+    #model = DL_method_NN_for_v2x_hybrid()
     #model = ResNet()
     #model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
@@ -112,7 +112,7 @@ if __name__ == '__main__':
                 #precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output,zf_matrix=None,distance=None)
                 precoding_matrix = loss.tf_Output2digitalPrecoding(output, zf_matrix, distance[:, :, 0])
             else:
-                Analog_matrix, Digital_matrix = loss.tf_Output2digitalPrecoding(Output=output,zf_matrix=zf_matrix,distance=distance)
+                #Analog_matrix, Digital_matrix = loss.tf_Output2digitalPrecoding(Output=output,zf_matrix=zf_matrix,distance=distance)
                 #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,\
                 #                                                                   analog_ref=analog_rad,\
                  #                                                                  digital_ref=digital_ref)
@@ -236,6 +236,7 @@ if __name__ == '__main__':
     sum_rate_list = []
     combined = []
     angle, distance = loss.load_data()
+
     input_whole = loss.Conversion2input_small(angle, distance)
     #input_whole = loss.Conversion2input_small2(angle, distance)
     input_whole = np.expand_dims(input_whole, axis=3)

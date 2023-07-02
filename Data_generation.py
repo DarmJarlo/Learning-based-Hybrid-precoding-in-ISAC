@@ -2,6 +2,7 @@ import random
 import tensorflow as tf
 import numpy as np
 import config_parameter
+import evaluation
 if config_parameter.mode == "V2I":
     antenna_size = config_parameter.antenna_size
     num_vehicle = config_parameter.num_vehicle
@@ -18,12 +19,29 @@ angles_2 = np.random.uniform(0.3*np.pi, 0.4*np.pi, size=(num_samples, 1))
 angles_3 = np.random.uniform(0.6*np.pi, 0.7*np.pi, size=(num_samples, 1))
 angles_4 = np.random.uniform(0.7*np.pi, 0.8*np.pi, size=(num_samples, 1))
 angles = np.concatenate((angles_1, angles_2, angles_3,angles_4), axis=1)
-distances = np.random.uniform(1000, 3000, size=(num_samples, num_vehicle))
+distances = np.random.uniform(1500, 2000, size=(num_samples, num_vehicle))
 angles = np.random.uniform(0.2*np.pi, 0.8*np.pi, size=(num_samples, num_vehicle))
 # Combine angles and distances into a single array
 angles = np.sort(angles, axis=1)
 data = np.concatenate((angles, distances), axis=1)
 
+distances = None
+angles = None
+for i in range(96):
+    distance,angle = evaluation.generate_input_v2i()
+    angle = angle.T
+    distance = distance.T
+    if distances is not None:
+        distances = np.concatenate((distances, distance), axis=0)
+        angles = np.concatenate((angles, angle), axis=0)
+    else:
+        distances = distance
+        angles = angle
+
+
+
+data = np.concatenate((np.array(angles), np.array(distances)), axis=1)
+print(data.shape)
 # Shuffle the data
 #np.random.shuffle(data)
 

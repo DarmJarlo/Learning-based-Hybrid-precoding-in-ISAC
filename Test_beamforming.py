@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import config_parameter
+from evaluation import generate_input_v2i
 import loss
 import loss_all
 import tensorflow as tf
@@ -23,7 +24,7 @@ def translate_precoding_matrix(matrix):
     return translated_matrix
 import math
 model = load_model()
-model.load_weights(filepath='Keras_models_digitalwith_sumratefinal/new_model')
+model.load_weights(filepath='Keras_models_digitalwithout_sumratefinal/new_model')
 if config_parameter.mode == "V2I":
     antnna_size = config_parameter.antenna_size
     num_vehicle = config_parameter.num_vehicle
@@ -31,7 +32,9 @@ elif config_parameter.mode == "V2V":
     antenna_size = config_parameter.vehicle_antenna_size
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
 
-angle,distance = loss.load_data()
+distance,angle = generate_input_v2i()
+angle = angle.T
+distance = distance.T
 selected_angle = angle[0:config_parameter.batch_size,:]
 selected_distance = distance[0:config_parameter.batch_size,:]
 input_single= loss.Conversion2input_small(selected_angle,selected_distance)

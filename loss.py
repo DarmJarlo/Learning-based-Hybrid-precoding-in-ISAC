@@ -510,6 +510,7 @@ def simple_precoder(theta,distance):
             precoder[batchindex,:,carindex] = precoder[batchindex,:,carindex] * distance_mod[carindex,batchindex]
     return precoder
 def zero_forcing(CSI):
+    print(CSI)
     H_inv = np.linalg.pinv(CSI)
 
 
@@ -549,7 +550,10 @@ def calculate_steer_vector(theta_list):
 
     return steering_vector
 def Path_loss(distance):
+    #print("distance",distance.dtype)
+    #distan#ce = float(distance)
     pathloss = sqrt(config_parameter.alpha * ((distance / config_parameter.d0) ** config_parameter.path_loss_exponent))
+    #print("pathloss",pathloss)
     #pathloss= pathloss.astype(np.float32)
     return pathloss
 def tf_Path_loss(distance):
@@ -640,7 +644,10 @@ def tf_Output2digitalPrecoding(Output,zf_matrix,distance):
     adjustment_factor = tf.cast(adjustment_factor, tf.complex64)
     Digital_Matrix = Digital_Matrix * adjustment_factor
     #Digital_Matrix = powerallocated(Digital_Matrix,distance)
-    Digital_Matrix_e = tf.transpose(zf_matrix,perm=[0,2,1]) + tf.cast(Digital_Matrix, tf.complex128)
+    if zf_matrix is None:
+        Digital_Matrix_e = Digital_Matrix
+    else:
+        Digital_Matrix_e = tf.transpose(zf_matrix,perm=[0,2,1]) + tf.cast(Digital_Matrix, tf.complex128)
     return Digital_Matrix_e
 def tf_Output2PrecodingMatrix_powerallocated(Output):
     shape = tf.shape(Output)
@@ -672,6 +679,7 @@ def tf_Output2PrecodingMatrix_powerallocated(Output):
 def tf_Output2PrecodingMatrix(Output):
     shape = tf.shape(Output)
     batch_size = shape[0]
+    print("batch_size",batch_size)
 
     if config_parameter.mode == "V2I":
         antenna_size = config_parameter.antenna_size
@@ -800,7 +808,7 @@ def tf_loss_sumrate(CSI, precoding_matrix):
 
     CSI = tf.cast(CSI, dtype=tf.complex128)
     precoding_matrix = tf.cast(precoding_matrix, dtype=tf.complex128)
-    print("csi",CSI)
+    #print("csi",CSI)
     #precoding_shape : 8,2   CSI(2,8)
     this_sinr = tf.linalg.diag_part(
         tf.square(
@@ -822,7 +830,7 @@ def tf_loss_sumrate(CSI, precoding_matrix):
         ),
         axis=2
     )
-    print("sum_other",sum_other)
+    #print("sum_other",sum_other)
     #sum_other = tf.squeeze(sum_other, axis=-1)
     #shape = tf.shape(CSI)
     sum_other = sum_other-this_sinr+config_parameter.sigma_k
@@ -830,12 +838,12 @@ def tf_loss_sumrate(CSI, precoding_matrix):
     #sum_other = tf.where(below_threshold, tf.fill(tf.shape(sum_other, 1e-10), sum_other))
     #if sum_other < 10e-10:
         #sum_other = tf.constant(10e-10, dtype=tf.float32)
-    print("sum_other",sum_other)
+    #print("sum_other",sum_other)
     #sum_other = tf.tile(sum_other, [1, shape[1]]) -this_sinr + config_parameter.sigma_k  # Shape: (batch_size, num_vehicle)
-    print("thissinr",this_sinr)
+    #print("thissinr",this_sinr)
     sinr = this_sinr / sum_other  # Shape: (batch_size, num_vehicle)
-    print("sinr",sinr)
-    print("sinr",tf.math.log1p(sinr))
+    #print("sinr",sinr)
+    #print("sinr",tf.math.log1p(sinr))
     #sumrate = tf.reduce_sum(tf.math.log(1.0 + sinr), axis=1) / tf.math.log(2.0)
     lg2 =tf.cast(tf.math.log1p(1.0),dtype=tf.float64)
     sumrate = tf.reduce_sum(tf.math.log1p(sinr)/ lg2, axis=1)

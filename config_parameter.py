@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import numpy as np
 
-digital = True
+digital = False
 mode = "V2V"
 #mode = "V2I"
 # some training parameters
@@ -15,7 +15,7 @@ mode = "V2V"
 iters = 1000
 one_iter_period = 1#s
 train_data_period = 1 #s
-num_vehicle =  5
+num_vehicle =  4
 batch_size = 32
 matched_filtering_gain =10
 
@@ -36,10 +36,10 @@ Initial_lowercar1_min = 40
 Initial_lowercar1_max = 50
 Initial_lowercar2_min = -40
 Initial_lowercar2_max = -50
-lowerspeed_low = -21
-lowerspeed_high = -20
-upperspeed_low = 20
-upperspeed_high = 21
+lowerspeed_low = -10
+lowerspeed_high = -5
+upperspeed_low = 5
+upperspeed_high = 10
 horizonspeed_low = 20
 horizonspeed_high = 21
 #########################################################
@@ -47,9 +47,8 @@ horizonspeed_high = 21
 
 
 highway_length = 540
-RSU_location = np.array([270,-20])
-Initial_location_min = 50
-Initial_location_max = 100
+RSU_location = np.array([0,-1000])
+
 Radar_measure_slot = 0.1 #s
 length_echo = 0.005  # length of echo ms
 power = 1
@@ -62,13 +61,17 @@ Frequency_original = 30e9 # carrier frequency in Hz
 FurtherTrain = True
 
 #these are for the simulation test
-speed_low = 20
-speed_high = 21
+speed_low = 5
+speed_high = 10
 
-Initial_location_min = np.array([45,-5,50])
-Initial_location_max = np.array([50,5,-50])
-Initial_uppercar_y = 90
-Initial_lowercar_y = 80
+Initial_location_min = np.array([900/np.tan(0.25*np.pi),900/np.tan(0.36*np.pi),1000/np.tan(0.64*np.pi),1000/np.tan(0.74*np.pi)])
+Initial_location_max = np.array([900/np.tan(0.24*np.pi),900/np.tan(0.35*np.pi),1000/np.tan(0.65*np.pi),1000/np.tan(0.75*np.pi)])
+print(Initial_location_min)
+print(Initial_location_max)
+#[ 1089.81379201   487.37954435 -1089.81379201 -2064.57288071]
+#[ 2064.57288071  1089.81379201  -487.37954435 -1089.81379201]
+Initial_uppercar_y = 1000
+Initial_lowercar_y = 900
 #Initial_location1_min = 100*np.sin(0.4*np.pi)
 #Initial_location1_min = 100*np.cos(0.3*np.pi)
 #print(Initial_location1_min)#58
