@@ -84,12 +84,14 @@ if __name__ == '__main__':
 
             output = model(input)
             portions = tf.cast(portions, tf.float64)
-            analog_rad = input[:,0:config_parameter.rf_size,8*antenna_size:9*antenna_size,0]#(4,16)
+            rf_size = config_parameter.rf_size
+            analog_rad = tf.concat([input[:,:,8*antenna_size:9*antenna_size,0],\
+                                        input[:,:2,9*antenna_size:10*antenna_size,0]],axis=1)#(4,16)
             #analog_rad = tf.complex(input[:,0:config_parameter.rf_size,8*antenna_size:9*antenna_size,0],\
              #                       input[:,0:config_parameter.rf_size,9*antenna_size:10*antenna_size,0])#(4,16)
-            digital_ref = tf.complex(input[:,0:config_parameter.rf_size,\
-                                  4*antenna_size:4*antenna_size+num_vehicle,0], \
-                                 input[:,:,5*antenna_size:5*antenna_size+num_vehicle,0])#(4,4)  also transposed
+            digital_ref = tf.complex(input[:,:,\
+                                  4*antenna_size:4*antenna_size+rf_size,0], \
+                                 input[:,:,5*antenna_size:5*antenna_size+rf_size,0])#(4,6)  also transposed
             distance = input[:, :, 3 * antenna_size:4 * antenna_size, 0]
             # distance = tf.multiply(distance, 100)
             distance = tf.cast(distance, tf.float64)
@@ -112,10 +114,10 @@ if __name__ == '__main__':
             shape = tf.shape(input)
 
             batch_size = shape[0]
-            Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
-            #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,\
-             #                                                                  analog_ref=analog_rad,\
-              #                                                                digital_ref=digital_ref)
+            #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
+            Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output,\
+                                                                               analog_ref=tf.transpose(analog_rad,perm=[0,2,1]),\
+                                                                              digital_ref=tf.transpose(digital_ref,perm=[0,2,1]))
 
             #precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
             ##
@@ -262,7 +264,7 @@ if __name__ == '__main__':
         # optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003, beta_1=0.91, beta_2=0.99)
         # optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.0001)
         elif iter < 6:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00002, beta_1=0.9, beta_2=0.99)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00001, beta_1=0.9, beta_2=0.99)
             # optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
         else:
             optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000001, beta_1=0.9, beta_2=0.99)
@@ -339,7 +341,7 @@ if __name__ == '__main__':
         # plt.grid(True)
         # plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='Keras_models_digital_onlycrb_d/new_model', save_format='tf')
+        model.save_weights(filepath='Keras_models_test/new_model', save_format='tf')
         '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''

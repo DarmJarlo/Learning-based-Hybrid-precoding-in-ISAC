@@ -7,8 +7,8 @@ import math
 import tensorflow as tf
 from network import DL_method_NN_for_v2x_mod,DL_method_NN_for_v2x_hybrid
 import matplotlib.pyplot as plt
-#Test = "V2V"
-Test = "V2I"
+Test = "V2V"
+#Test = "V2I"
 if config_parameter.mode == "V2I":
     antenna_size = config_parameter.antenna_size
     num_vehicle = config_parameter.num_vehicle
@@ -31,34 +31,34 @@ def load_model_hybrid_combine():
     digital = False
     model = load_model(digital)
 
-    model.load_weights(filepath='allmodel/Keras_models_hybrid_combinefinal/new_model')
+    model.load_weights(filepath='Keras_models_hybrid_combinefinal/new_model')
     return model
 def load_model_digitalwith_combine():
     digital = True
     model = load_model(digital)
 
-    model.load_weights(filepath='allmodel/Keras_models_digitalwith_combinefinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwith_combinefinal/new_model')
     return model
 def load_model_digitalwithout_combine():
     digital = True
     model = load_model(digital)
-    model.load_weights(filepath='allmodel/Keras_models_digitalwithout_combinefinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_combinefinal/new_model')
     return model
 
 def load_model_only_communication_digitalwith():
     digital = True
     model = load_model(digital)
-    model.load_weights(filepath='allmodel/Keras_models_digitalwith_sumratefinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwith_sumratefinal/new_model')
     return model
 def load_model_only_communication_digitalwithout():
     digital = True
     model = load_model(digital)
-    model.load_weights(filepath='allmodel/Keras_models_digitalwithout_sumratefinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_sumratefinal/new_model')
     return model
 def load_model_only_communication_hybrid():
     digital = False
     model = load_model(digital)
-    model.load_weights(filepath='allmodel/Keras_models_hybrid_onlycommfinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_hybrid_onlycommfinal/new_model')
     return model
 def load_model_only_crbd_hybrid():
     digital = False
@@ -68,12 +68,12 @@ def load_model_only_crbd_hybrid():
 def load_model_only_crbd_digitalwith():
     digital = True
     model = load_model(digital)
-    model.load_weights(filepath='allmodel/Keras_models_digitalwith_crbdfinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwith_crbdfinal/new_model')
     return model
 def load_model_only_crbd_digitalwithout():
     digital = True
     model = load_model(digital)
-    model.load_weights(filepath='allmodel/Keras_models_digitalwithout_crbdfinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_crbdfinal/new_model')
     return model
 def load_model_only_crbangle_hybrid():
     digital = False
@@ -83,12 +83,12 @@ def load_model_only_crbangle_hybrid():
 def load_model_only_crbangle_digitalwith():
     digital = True
     model = load_model(digital)
-    model.load_weights(filepath='allmodel/Keras_models_digitalwith_crbanglefinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwith_crbanglefinal/new_model')
     return model
 def load_model_only_crbangle_digitalwithout():
     digital = True
     model = load_model(digital)
-    model.load_weights(filepath='allmodel/Keras_models_digitalwithout_crbanglefinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_crbanglefinal/new_model')
     return model
 def generate_input_v2v():
 
@@ -261,7 +261,7 @@ def comparison_between_crb_distance(combined):
     zf_matrix = tf.complex(combined[:, :, 4 * antenna_size:5 * antenna_size, 0],
                             combined[:, :, 5 * antenna_size:6 * antenna_size, 0])
     distance = combined[:, :, 3 * antenna_size:4*antenna_size, 0]
-    beta = loss.Reflection_coefficient(distance)[1:]
+    beta = loss.Reflection_coefficient(distance)
     model1 = load_model_hybrid_combine()
     model2 = load_model_digitalwith_combine()
     model3 = load_model_digitalwithout_combine()
@@ -275,22 +275,22 @@ def comparison_between_crb_distance(combined):
     output5 = model5(combined)
     output6 = model6(combined)
     analog1, digital1 = loss.tf_Output2PrecodingMatrix_rad(output1)
-    precoder1 = loss.tf_Precoding_matrix_combine(analog1, digital1)[:-1]
-    precoder2 = loss.tf_Output2digitalPrecoding(output2, zf_matrix=zf_matrix, distance=None)[:-1]
-    precoder3 = loss.tf_Output2digitalPrecoding(output3, zf_matrix=None, distance=None)[:-1]
+    precoder1 = loss.tf_Precoding_matrix_combine(analog1, digital1)
+    precoder2 = loss.tf_Output2digitalPrecoding(output2, zf_matrix=zf_matrix, distance=None)
+    precoder3 = loss.tf_Output2digitalPrecoding(output3, zf_matrix=None, distance=None)
     analog4, digital4 = loss.tf_Output2PrecodingMatrix_rad(output4)
-    precoder4 = loss.tf_Precoding_matrix_combine(analog4, digital4)[:-1]
-    precoder5 = loss.tf_Output2digitalPrecoding(output5, zf_matrix=zf_matrix, distance=None)[:-1]
-    precoder6 = loss.tf_Output2digitalPrecoding(output6, zf_matrix=None, distance=None)[-1:]
+    precoder4 = loss.tf_Precoding_matrix_combine(analog4, digital4)
+    precoder5 = loss.tf_Output2digitalPrecoding(output5, zf_matrix=zf_matrix, distance=None)
+    precoder6 = loss.tf_Output2digitalPrecoding(output6, zf_matrix=None, distance=None)
     precoder7 = loss.random_beamforming()
-    steering_vector_this_o = steering_vector_this_o[:-1]
+    steering_vector_this_o = steering_vector_this_o
     Sigma_time_delay1 = loss.tf_sigma_delay_square(steering_vector_this_o, precoder1, beta)
     Sigma_time_delay2 = loss.tf_sigma_delay_square(steering_vector_this_o, precoder2, beta)
     Sigma_time_delay3 = loss.tf_sigma_delay_square(steering_vector_this_o, precoder3, beta)
     Sigma_time_delay4 = loss.tf_sigma_delay_square(steering_vector_this_o, precoder4, beta)
     Sigma_time_delay5 = loss.tf_sigma_delay_square(steering_vector_this_o, precoder5, beta)
     Sigma_time_delay6 = loss.tf_sigma_delay_square(steering_vector_this_o, precoder6, beta)
-    Sigma_time_delay7 = loss.tf_sigma_delay_square(steering_vector_this_o, tf.transpose(zf_matrix,perm=[0,2,1])[:-1], beta)
+    Sigma_time_delay7 = loss.tf_sigma_delay_square(steering_vector_this_o, tf.transpose(zf_matrix,perm=[0,2,1]), beta)
     CRB_d1 = tf.reduce_sum(loss.tf_CRB_distance(Sigma_time_delay1),axis=1)/4
     CRB_d2 = tf.reduce_sum(loss.tf_CRB_distance(Sigma_time_delay2),axis=1)/4
     CRB_d3 = tf.reduce_sum(loss.tf_CRB_distance(Sigma_time_delay3),axis=1)/4
@@ -301,14 +301,14 @@ def comparison_between_crb_distance(combined):
     #shape = tf.shape(CRB_d1)[0]
     #CRB_d7 = loss.tf_CRB_distance(Sigma_time_delay7)
     fig, ax1 = plt.subplots()
-    ax1.plot(range(9), CRB_d1, 'b-.', label='hybrid ISAC')
+    ax1.plot(range(100), CRB_d1, 'b-.', label='hybrid ISAC')
 
-    ax1.plot(range(9), CRB_d2, 'g-', label='digital ISAC,with initial point')
-    ax1.plot(range(9), CRB_d3, 'r.-', label='digital ISAC,without initial point')
-    ax1.plot(range(9), CRB_d4, 'm.', label='hybrid only crb_distance')
-    ax1.plot(range(9), CRB_d5, 'r-', label='digital with initial point only crb_distance')
-    ax1.plot(range(9), CRB_d6, 'b-', label='digital without initial point only crb_distance')
-    ax1.plot(range(9), CRB_d7, 'g.', label='ZF precoder')
+    ax1.plot(range(100), CRB_d2, 'g-', label='digital ISAC,with initial point')
+    ax1.plot(range(100), CRB_d3, 'r.-', label='digital ISAC,without initial point')
+    ax1.plot(range(100), CRB_d4, 'm.', label='hybrid only crb_distance')
+    ax1.plot(range(100), CRB_d5, 'r-', label='digital with initial point only crb_distance')
+    ax1.plot(range(100), CRB_d6, 'b-', label='digital without initial point only crb_distance')
+    ax1.plot(range(100), CRB_d7, 'g.', label='ZF precoder')
     ax1.set_xlabel('time')
     ax1.set_ylabel('CRB distance', color='b')
     ax1.tick_params('y', colors='b')
@@ -328,10 +328,10 @@ def comparison_between_crb_distance(combined):
 
     # lines = [ax4.get_lines()[0]]
     labels = [line.get_label() for line in lines]
-    ax1.legend(lines, labels, bbox_to_anchor=(0.36, 0.5))
+    ax1.legend(lines, labels, bbox_to_anchor=(0.6, 0.5))
 
         #ax1.legend(lines, labels, loc='best')
-    plt.show()
+    #plt.show()
 
 
 def comparison_between_crb_angle(combined):
@@ -374,14 +374,14 @@ def comparison_between_crb_angle(combined):
     CRB_angle6 = tf.reduce_sum(loss.tf_CRB_angle(beta, precoder6, theta),axis=1)/4
     CRB_angle7 = tf.reduce_sum(loss.tf_CRB_angle(beta, tf.transpose(zf_matrix,perm=[0,2,1]), theta),axis=1)/4
     fig, ax1 = plt.subplots()
-    ax1.plot(range(10), CRB_angle1, 'b-.', label='hybrid ISAC')
+    ax1.plot(range(100), CRB_angle1, 'b-.', label='hybrid ISAC')
 
-    ax1.plot(range(10), CRB_angle2, 'g-', label='digital ISAC,with initial point')
-    ax1.plot(range(10), CRB_angle3, 'r.-', label='digital ISAC,without initial point')
-    ax1.plot(range(10), CRB_angle4, 'm.', label='hybrid only crb_angle')
-    ax1.plot(range(10), CRB_angle5, 'r-', label='digital with initial point only crb_angle')
-    ax1.plot(range(10), CRB_angle6, 'b-', label='digital without initial point only crb_angle')
-    ax1.plot(range(10), CRB_angle7, 'g.', label='ZF precoder')
+    ax1.plot(range(100), CRB_angle2, 'g-', label='digital ISAC,with initial point')
+    ax1.plot(range(100), CRB_angle3, 'r.-', label='digital ISAC,without initial point')
+    ax1.plot(range(100), CRB_angle4, 'm.', label='hybrid only crb_angle')
+    ax1.plot(range(100), CRB_angle5, 'r-', label='digital with initial point only crb_angle')
+    ax1.plot(range(100), CRB_angle6, 'b-', label='digital without initial point only crb_angle')
+    ax1.plot(range(100), CRB_angle7, 'g.', label='ZF precoder')
     ax1.set_xlabel('time')
     ax1.set_ylabel('CRB angle', color='b')
     ax1.tick_params('y', colors='b')
@@ -454,14 +454,14 @@ def comparison_between_sumrate(combined):
 
 
     fig, ax1 = plt.subplots()
-    ax1.plot(range(10), sum_rate1, 'b-.', label='hybrid ISAC')
+    ax1.plot(range(100), sum_rate1, 'b-.', label='hybrid ISAC')
     #ax2 = ax1.twinx()
-    ax1.plot(range(10), sum_rate2, 'g--', label='digital ISAC,with initial point')
-    ax1.plot(range(10), sum_rate3, 'r.-', label='digital ISAC,without initial point')
-    ax1.plot(range(10), sum_rate4, 'm:', label='hybrid only communication')
-    ax1.plot(range(10), sum_rate5, 'r-', label='digital with initial point only communication')
-    ax1.plot(range(10), sum_rate6, 'b-', label='digital without initial point only communication')
-    ax1.plot(range(10), sum_rate7, 'g.', label='ZF precoder')
+    ax1.plot(range(100), sum_rate2, 'g--', label='digital ISAC,with initial point')
+    ax1.plot(range(100), sum_rate3, 'r.-', label='digital ISAC,without initial point')
+    ax1.plot(range(100), sum_rate4, 'm:', label='hybrid only communication')
+    ax1.plot(range(100), sum_rate5, 'r-', label='digital with initial point only communication')
+    ax1.plot(range(100), sum_rate6, 'b-', label='digital without initial point only communication')
+    ax1.plot(range(100), sum_rate7, 'g.', label='ZF precoder')
     ax1.set_xlabel('time')
     ax1.set_ylabel('sum rate(bits/s/hz)', color='b')
     ax1.tick_params('y', colors='b')
@@ -489,7 +489,7 @@ def comparison_between_sumrate(combined):
 
     precoder5 = precoder5.numpy()
     print(precoder5.shape)
-    r1 = np.matmul(Hset.T, precoder1[9, :, :])
+    r1 = np.matmul(Hset.T, precoder4[6, :, :])
     plt.polar(angle_set, np.abs(r1))
     #plt.show()
 
@@ -549,13 +549,13 @@ if Test == "V2V":
 elif Test == "V2I":
     real_distance, real_theta = generate_input_v2i()
 
-random.seed(2)
+#random.seed(2)
 #combined = loss.Conversion2CSI(real_distance, real_theta)P
-combined = loss.Conversion2input_small(real_theta.T[:10], real_distance.T[:10])
+combined = loss.Conversion2input_small(real_theta.T[:100], real_distance.T[:100])
 
 combined = tf.expand_dims(combined, axis=3)
-#comparison_between_sumrate(combined)
-comparison_between_crb_distance(combined)
+comparison_between_sumrate(combined)
+#comparison_between_crb_distance(combined)
 #comparison_between_crb_angle(combined)
 #print("real_distance",real_distance.T.shape)
 #print("real_theta",real_theta.T.shape)

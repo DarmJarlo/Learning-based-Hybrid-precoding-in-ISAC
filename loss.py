@@ -44,13 +44,13 @@ def random_beamforming():
 
     # 计算所有元素的绝对值之和
     abs_sum = tf.reduce_sum(tf.abs(complex_matrix), axis=(1, 2))
-    factor = tf.cast(max_power/abs_sum, dtype=tf.complex64)
+    factor = tf.cast(tf.sqrt(max_power/abs_sum), dtype=tf.complex64)
     # 根据最大的绝对值之和进行缩放
     scaled_matrix = tf.multiply(complex_matrix,factor[:, tf.newaxis, tf.newaxis])
     return scaled_matrix
 def svd_csi(CSI):
 
-    U, s, Vh = np.linalg.svd(CSI, full_matrices=False)
+    U, s, Vh = np.linalg.svd(CSI, full_matrices=True)
     num_rf = config_parameter.rf_size
     #print("VH",Vh.shape)
     analog_part = Vh[:num_rf,:]
@@ -61,17 +61,20 @@ def svd_csi(CSI):
     #print("analog_part",analog_part)
     CSI_h = np.transpose(CSI.conj())
     #print("CSI_h",CSI_h.shape)
-    digital_part = np.dot(analog_part,CSI_h)
+    digital_part = np.dot(CSI_h.T,analog_part.T.conj())
     #digital_part = np.transpose(digital_part.conj()) #not right here
-    return analog_part.T,digital_part
+    return analog_part,digital_part
 
 def svd_zf(zf_matrix):
-    U, s, Vh = np.linalg.svd(zf_matrix, full_matrices=False)
+    U, s, Vh = np.linalg.svd(zf_matrix, full_matrices=True)
+    #print("U",U.shape)
+    #print("s",s.shape)
+    #print("Vh",Vh)
     #print("zf",zf_matrix.shape)
     num_rf = config_parameter.rf_size
     #digital =
     analog_part = Vh[:num_rf, :]
-    digital_part = np.diag(s[:num_rf]) @ Vh[:num_rf, :]
+    #digital_part = np.diag(s[:num_rf]) @ Vh[:num_rf, :]
 
     # 取前8行的U矩阵，得到（8,8）的U'矩阵
     #U_prime = U[:, :8]
@@ -88,10 +91,10 @@ def svd_zf(zf_matrix):
     #analog_precoder = complex_matrix_to_polar(analog_part)
     analog_rad = np.angle(analog_part)
     #print("analog_rad",analog_rad)
-    digital_precoder = np.matmul(analog_rad.conj(),zf_matrix.T)
+    digital_precoder = np.matmul(zf_matrix,analog_rad.T.conj())
     #print("digital_precoder",digital_precoder.shape)
     #digital_precoder = complex_matrix_to_polar(digital_part)
-    return analog_rad.T,digital_precoder
+    return analog_rad,digital_precoder
 "load data"
 def load_data():
     if config_parameter.mode == "V2I":
@@ -101,7 +104,7 @@ def load_data():
         antenna_size = config_parameter.vehicle_antenna_size
         num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
 
-    data = np.load("dataset.npy")
+    data = np.load("dataset_random.npy")
     distance = data[:, num_vehicle:]
     print("distance",distance[10,:])
     angle = data[:, :num_vehicle]
@@ -290,16 +293,17 @@ def Conversion2input_small3(angle,distance):
     CSI_o = np.multiply(pathloss, np.conjugate(steering_vector))
     CSI = sqrt(antenna_size) * CSI_o
     input_whole = np.zeros(shape=(num_sample, num_vehicle,
-               9 * antenna_size))
+               10 * antenna_size))
     for n in range(num_sample):
 
         zf_matrix[n,:,:] = zero_forcing(CSI[n,:,:]).T
-        analog_rad,digital_part =svd_zf(zf_matrix[n,:,:])
-        input_whole[n,0:config_parameter.rf_size,8*antenna_size:9*antenna_size] = np.transpose(analog_rad)
+        #analog_rad,digital_part =svd_zf(zf_matrix[n,:,:])
+        analog_rad,digital_part =svd_csi(CSI[n,:,:])
+        input_whole[n,:,8*antenna_size:9*antenna_size] = analog_rad[0:4]
+        input_whole[n,:2, 9 * antenna_size:10 * antenna_size] = analog_rad[4:6]
         #input_whole[n, 0:config_parameter.rf_size, 9 * antenna_size:10 * antenna_size] = np.transpose(np.imag(analog_rad))
-        input_whole[n, 0:config_parameter.rf_size, 4 * antenna_size:4 * antenna_size + num_vehicle] = np.transpose(
-            np.real(digital_part))
-        input_whole[n,0:config_parameter.rf_size,5*antenna_size:5*antenna_size+num_vehicle] = np.transpose(np.imag(digital_part))
+        input_whole[n, 0:num_vehicle, 4 * antenna_size:4 * antenna_size +config_parameter.rf_size] = np.real(digital_part)
+        input_whole[n,0:num_vehicle,5*antenna_size:5*antenna_size+config_parameter.rf_size] = np.imag(digital_part)
 
 
     input_whole[:,:,0:1*antenna_size] = np.real(np.conjugate(steering_vector))
@@ -501,7 +505,7 @@ def simple_precoder(theta,distance):
     distance_mod = np.zeros((num_vehicle,theta.shape[1]))
     for m in range(num_vehicle):
 
-        distance_mod[m] = distance_norm* distance[m]
+        distance_mod[m] = sqrt(distance_norm* distance[m])
     print("distance shape",distance_mod)
     for batchindex in range(theta.shape[1]):
         for carindex in range(theta.shape[0]):
@@ -515,9 +519,9 @@ def zero_forcing(CSI):
 
 
     max_power = config_parameter.power
-    magnitude_sum = np.sum(np.abs(H_inv))
+    magnitude_sum = np.sum(np.square(np.abs(H_inv)))
 
-    adjustment_factor = max_power / magnitude_sum
+    adjustment_factor = sqrt(max_power / magnitude_sum)
     H_inv = np.multiply(H_inv, adjustment_factor)
 
     return H_inv
@@ -527,9 +531,9 @@ def tf_zero_forcing(CSI):
     H_inv_imag = tf.linalg.pinv(tf.math.imag(CSI))
     H_inv = tf.complex(H_inv_real,H_inv_imag)
     max_power = config_parameter.power
-    magnitude_sum = tf.reduce_sum(tf.abs(H_inv),axis=[1,2],keepdims=True)
+    magnitude_sum = tf.reduce_sum(tf.square(tf.abs(H_inv)),axis=[1,2],keepdims=True)
 
-    adjustment_factor = max_power / magnitude_sum
+    adjustment_factor = tf.sqrt(max_power / magnitude_sum)
     adjustment_factor= tf.cast(adjustment_factor,tf.complex128)
     H_inv = tf.multiply(H_inv, adjustment_factor)
 
@@ -594,7 +598,7 @@ def tf_Output2PrecodingMatrix_rad_mod(Output,analog_ref,digital_ref):
     #analog_ref, digital_ref = svd_zf(zf_matrix)
     #Analog_Matrix = g*tf.exp(1j * Analog_part_reshaped_o)
     analog_ref = tf.cast(analog_ref, tf.complex128)
-    analog_ref = tf.transpose(analog_ref,perm=[0,2,1])
+    #analog_ref = tf.transpose(analog_ref,perm=[0,2,1])
 
     Analog_Matrix=g*tf.multiply(tf.exp(1j*analog_ref),tf.exp(1j*Analog_part_reshaped_o))
 
@@ -639,8 +643,8 @@ def tf_Output2digitalPrecoding(Output,zf_matrix,distance):
 
 
     #shape(8,2)
-    magnitude_sum = tf.reduce_sum(tf.abs(Digital_Matrix), axis=[1, 2], keepdims=True)
-    adjustment_factor = max_power / magnitude_sum
+    magnitude_sum = tf.reduce_sum(tf.square(tf.abs(Digital_Matrix)), axis=[1, 2], keepdims=True)
+    adjustment_factor = tf.sqrt(max_power / magnitude_sum)
     adjustment_factor = tf.cast(adjustment_factor, tf.complex64)
     Digital_Matrix = Digital_Matrix * adjustment_factor
     #Digital_Matrix = powerallocated(Digital_Matrix,distance)
@@ -724,10 +728,10 @@ def tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix):
     matrix = tf.matmul(Analog_matrix, Digital_matrix)
     matrix = tf.cast(matrix, dtype=tf.complex128)
     #shape(8,2)
-    magnitude_sum = tf.reduce_sum(tf.abs(matrix), axis=[1, 2], keepdims=True)
+    magnitude_sum = tf.reduce_sum(tf.square(tf.abs(matrix)), axis=[1, 2], keepdims=True)
 
     adjustment_factor = max_power / magnitude_sum
-    adjustment_factor = tf.cast(adjustment_factor,dtype=tf.complex128)
+    adjustment_factor = tf.cast(tf.sqrt(adjustment_factor),dtype=tf.complex128)
     #matrix = tf.cast(matrix, dtype=tf.complex128)
     normalized_array = tf.multiply(matrix, adjustment_factor)
 
@@ -752,9 +756,9 @@ def tf_Precoding_matrix_comb_Powerallocated(Analog_matrix,Digital_matrix,distanc
     matrix = tf.matmul(Analog_matrix, Digital_matrix)
     matrix = tf.cast(matrix, dtype=tf.complex128)
     #shape(8,2)
-    magnitude_sum = tf.reduce_sum(tf.abs(matrix), axis=1, keepdims=True)
+    magnitude_sum = tf.reduce_sum(tf.square(tf.abs(matrix)), axis=1, keepdims=True)
     print("magnitude_sum",magnitude_sum)
-    adjustment_factor =  adjustment_power/ magnitude_sum
+    adjustment_factor =  tf.sqrt(adjustment_power/ magnitude_sum)
     print("adjustment_factor",adjustment_factor)
     adjustment_factor = tf.cast(adjustment_factor,dtype=tf.complex128)
     #matrix = tf.cast(matrix, dtype=tf.complex128)
@@ -780,14 +784,24 @@ def powerallocated(matrix,distance):
     print("adjustment_power",adjustment_power)
     matrix = tf.cast(matrix, dtype=tf.complex128)
     # shape(8,2)
-    magnitude_sum = tf.reduce_sum(tf.abs(matrix), axis=1, keepdims=True)
+    magnitude_sum = tf.reduce_sum(tf.square(tf.abs(matrix)), axis=1, keepdims=True)
     print("magnitude_sum", magnitude_sum)
     adjustment_factor = adjustment_power / magnitude_sum
     print("adjustment_factor", adjustment_factor)
-    adjustment_factor = tf.cast(adjustment_factor, dtype=tf.complex128)
+    adjustment_factor = tf.cast(tf.sqrt(adjustment_factor), dtype=tf.complex128)
     # matrix = tf.cast(matrix, dtype=tf.complex128)
     normalized_array = tf.multiply(matrix, adjustment_factor)
 
+    return normalized_array
+def Powerscale(matrix):
+    max_power = tf.constant(config_parameter.power, dtype=tf.float64)
+    matrix = tf.cast(matrix, dtype=tf.complex128)
+    magnitude_sum = tf.reduce_sum(tf.abs(matrix), axis=[1, 2], keepdims=True)
+
+    adjustment_factor = tf.sqrt(max_power / magnitude_sum)
+    adjustment_factor = tf.cast(adjustment_factor,dtype=tf.complex128)
+    #matrix = tf.cast(matrix, dtype=tf.complex128)
+    normalized_array = tf.multiply(matrix, adjustment_factor)
     return normalized_array
 def tf_Precoding_comb_no_powerconstarint(Analog_matrix, Digital_matrix):
     matrix = tf.matmul(Analog_matrix, Digital_matrix)

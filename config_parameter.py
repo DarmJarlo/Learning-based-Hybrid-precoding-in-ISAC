@@ -13,7 +13,7 @@ mode = "V2V"
 #imagine the vertical distance between RSU and highway is 20
 
 iters = 1000
-one_iter_period = 1#s
+one_iter_period = 2#s
 train_data_period = 1 #s
 num_vehicle =  4
 batch_size = 32
@@ -49,7 +49,7 @@ horizonspeed_high = 21
 highway_length = 540
 RSU_location = np.array([0,-1000])
 
-Radar_measure_slot = 0.1 #s
+Radar_measure_slot = 0.02 #s
 length_echo = 0.005  # length of echo ms
 power = 1
 
@@ -117,9 +117,10 @@ rou_dopplershift = 2e-8
 
 
 
-#loss_mode = "Upper_sum_rate"   # three mode
+loss_mode = "Upper_sum_rate"   # three mode
 #loss_mode = "lower_bound_crb"
-loss_mode = "combined_loss"
+
+#loss_mode = "combined_loss"
 
 
 #below are the parameter for v2v

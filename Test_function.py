@@ -134,6 +134,7 @@ distance = input_single[:, :, 3 * antenna_size:4 * antenna_size, 0]
 beta = loss.Reflection_coefficient(distance)
 sigma = Test_sigma_delay(steering_vector,precoding_matrix_c=tf.transpose(zf_precoding_matrix,perm=[0,2,1]), beta=beta)
 crb_d = loss.tf_CRB_distance(sigma)
+
 print("sigma",sigma)
 print("crb_d",crb_d)
 #print(test_pathloss(1))
