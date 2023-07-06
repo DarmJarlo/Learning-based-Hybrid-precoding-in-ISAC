@@ -796,7 +796,7 @@ def powerallocated(matrix,distance):
 def Powerscale(matrix):
     max_power = tf.constant(config_parameter.power, dtype=tf.float64)
     matrix = tf.cast(matrix, dtype=tf.complex128)
-    magnitude_sum = tf.reduce_sum(tf.abs(matrix), axis=[1, 2], keepdims=True)
+    magnitude_sum = tf.reduce_sum(tf.square(tf.abs(matrix)), axis=[1, 2], keepdims=True)
 
     adjustment_factor = tf.sqrt(max_power / magnitude_sum)
     adjustment_factor = tf.cast(adjustment_factor,dtype=tf.complex128)

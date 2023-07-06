@@ -6,14 +6,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import numpy as np
 
-digital = False
+digital = True
 mode = "V2V"
 #mode = "V2I"
 # some training parameters
 #imagine the vertical distance between RSU and highway is 20
 
 iters = 1000
-one_iter_period = 2#s
+one_iter_period = 0.4#s
 train_data_period = 1 #s
 num_vehicle =  4
 batch_size = 32
@@ -40,8 +40,8 @@ lowerspeed_low = -10
 lowerspeed_high = -5
 upperspeed_low = 5
 upperspeed_high = 10
-horizonspeed_low = 20
-horizonspeed_high = 21
+horizonspeed_low = 5
+horizonspeed_high = 10
 #########################################################
 
 
@@ -49,7 +49,7 @@ horizonspeed_high = 21
 highway_length = 540
 RSU_location = np.array([0,-1000])
 
-Radar_measure_slot = 0.02 #s
+Radar_measure_slot = 0.01 #s
 length_echo = 0.005  # length of echo ms
 power = 1
 
@@ -58,14 +58,14 @@ fading_coefficient = 0.5 + 0.5*1j
 """同樣的，pathloss越小，zf的sumrate越小，因爲sinr的數量級越小，zf的sumrate越小"""
 #calculation for doppler_frequency
 Frequency_original = 30e9 # carrier frequency in Hz
-FurtherTrain = True
+FurtherTrain = False
 
 #these are for the simulation test
 speed_low = 5
 speed_high = 10
 
-Initial_location_min = np.array([900/np.tan(0.25*np.pi),900/np.tan(0.36*np.pi),1000/np.tan(0.64*np.pi),1000/np.tan(0.74*np.pi)])
-Initial_location_max = np.array([900/np.tan(0.24*np.pi),900/np.tan(0.35*np.pi),1000/np.tan(0.65*np.pi),1000/np.tan(0.75*np.pi)])
+Initial_location_min = np.array([900/np.tan(0.25*np.pi),900/np.tan(0.32*np.pi),1000/np.tan(0.62*np.pi),1000/np.tan(0.72*np.pi)])
+Initial_location_max = np.array([900/np.tan(0.24*np.pi),900/np.tan(0.31*np.pi),1000/np.tan(0.61*np.pi),1000/np.tan(0.71*np.pi)])
 print(Initial_location_min)
 print(Initial_location_max)
 #[ 1089.81379201   487.37954435 -1089.81379201 -2064.57288071]

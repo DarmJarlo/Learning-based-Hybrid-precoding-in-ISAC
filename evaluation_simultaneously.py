@@ -7,8 +7,8 @@ import math
 import tensorflow as tf
 from network import DL_method_NN_for_v2x_mod,DL_method_NN_for_v2x_hybrid
 import matplotlib.pyplot as plt
-Test = "V2V"
-#Test = "V2I"
+#Test = "V2V"
+Test = "V2I"
 if config_parameter.mode == "V2I":
     antenna_size = config_parameter.antenna_size
     num_vehicle = config_parameter.num_vehicle
@@ -31,7 +31,7 @@ def load_model_hybrid_combine():
     digital = False
     model = load_model(digital)
 
-    model.load_weights(filepath='Keras_models_hybrid_combinefinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_hybrid_combinefinal/new_model')
     return model
 def load_model_digitalwith_combine():
     digital = True
@@ -54,6 +54,7 @@ def load_model_only_communication_digitalwithout():
     digital = True
     model = load_model(digital)
     model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_sumratefinal/new_model')
+    #model.load_weights(filepath='allmodel1/Keras_models_test/new_model')
     return model
 def load_model_only_communication_hybrid():
     digital = False
@@ -63,22 +64,25 @@ def load_model_only_communication_hybrid():
 def load_model_only_crbd_hybrid():
     digital = False
     model = load_model(digital)
-    model.load_weights(filepath='allmodel/Keras_models_hybrid_onlycrbdfinal/new_model')
+    #model.load_weights(filepath='allmodel1/Keras_models_hybrid_onlycrbdfinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_hybrid_onlycommfinal/new_model')
     return model
 def load_model_only_crbd_digitalwith():
     digital = True
     model = load_model(digital)
-    model.load_weights(filepath='allmodel1/Keras_models_digitalwith_crbdfinal/new_model')
+    #model.load_weights(filepath='allmodel1/Keras_models_digitalwith_crbdfinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwith_sumratefinal/new_model')
     return model
 def load_model_only_crbd_digitalwithout():
     digital = True
     model = load_model(digital)
-    model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_crbdfinal/new_model')
+    #model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_crbdfinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_sumratefinal/new_model')
     return model
 def load_model_only_crbangle_hybrid():
     digital = False
     model = load_model(digital)
-    model.load_weights(filepath='allmodel/Keras_models_hybrid_onlycrbanglefinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_hybrid_onlycrbanglefinal/new_model')
     return model
 def load_model_only_crbangle_digitalwith():
     digital = True
@@ -88,7 +92,7 @@ def load_model_only_crbangle_digitalwith():
 def load_model_only_crbangle_digitalwithout():
     digital = True
     model = load_model(digital)
-    model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_crbanglefinal/new_model')
+    model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_crbafinal/new_model')
     return model
 def generate_input_v2v():
 
@@ -301,14 +305,14 @@ def comparison_between_crb_distance(combined):
     #shape = tf.shape(CRB_d1)[0]
     #CRB_d7 = loss.tf_CRB_distance(Sigma_time_delay7)
     fig, ax1 = plt.subplots()
-    ax1.plot(range(100), CRB_d1, 'b-.', label='hybrid ISAC')
+    ax1.plot(range(40), CRB_d1, 'b-.', label='hybrid ISAC')
 
-    ax1.plot(range(100), CRB_d2, 'g-', label='digital ISAC,with initial point')
-    ax1.plot(range(100), CRB_d3, 'r.-', label='digital ISAC,without initial point')
-    ax1.plot(range(100), CRB_d4, 'm.', label='hybrid only crb_distance')
-    ax1.plot(range(100), CRB_d5, 'r-', label='digital with initial point only crb_distance')
-    ax1.plot(range(100), CRB_d6, 'b-', label='digital without initial point only crb_distance')
-    ax1.plot(range(100), CRB_d7, 'g.', label='ZF precoder')
+    ax1.plot(range(40), CRB_d2, 'g-', label='digital ISAC with initialization')
+    ax1.plot(range(40), CRB_d3, 'r.-', label='digital ISAC,without initialization')
+    ax1.plot(range(40), CRB_d4, 'm.', label='hybrid only crb_distance')
+    ax1.plot(range(40), CRB_d5, 'r-', label='digital with initialization only CRB_d')
+    ax1.plot(range(40), CRB_d6, 'b-', label='digital without initialization only CRB_d')
+    ax1.plot(range(40), CRB_d7, 'g.', label='ZF precoder')
     ax1.set_xlabel('time')
     ax1.set_ylabel('CRB distance', color='b')
     ax1.tick_params('y', colors='b')
@@ -328,10 +332,15 @@ def comparison_between_crb_distance(combined):
 
     # lines = [ax4.get_lines()[0]]
     labels = [line.get_label() for line in lines]
-    ax1.legend(lines, labels, bbox_to_anchor=(0.6, 0.5))
+    #ax1.legend(lines, labels, bbox_to_anchor=(0.5, 0.4),loc='best')
+    ax1.legend(lines, labels, loc='best')
+    ax1.legend_.get_frame().set_facecolor('white')  # 设置标签框的背景颜色为白色
+    ax1.legend_.get_frame().set_linewidth(0.5)  # 设置标签框的边框宽度
+    for text in ax1.legend_.get_texts():
+        text.set_fontsize(10)
 
         #ax1.legend(lines, labels, loc='best')
-    #plt.show()
+    plt.show()
 
 
 def comparison_between_crb_angle(combined):
@@ -374,14 +383,14 @@ def comparison_between_crb_angle(combined):
     CRB_angle6 = tf.reduce_sum(loss.tf_CRB_angle(beta, precoder6, theta),axis=1)/4
     CRB_angle7 = tf.reduce_sum(loss.tf_CRB_angle(beta, tf.transpose(zf_matrix,perm=[0,2,1]), theta),axis=1)/4
     fig, ax1 = plt.subplots()
-    ax1.plot(range(100), CRB_angle1, 'b-.', label='hybrid ISAC')
+    ax1.plot(range(40), CRB_angle1, 'b-.', label='hybrid ISAC')
 
-    ax1.plot(range(100), CRB_angle2, 'g-', label='digital ISAC,with initial point')
-    ax1.plot(range(100), CRB_angle3, 'r.-', label='digital ISAC,without initial point')
-    ax1.plot(range(100), CRB_angle4, 'm.', label='hybrid only crb_angle')
-    ax1.plot(range(100), CRB_angle5, 'r-', label='digital with initial point only crb_angle')
-    ax1.plot(range(100), CRB_angle6, 'b-', label='digital without initial point only crb_angle')
-    ax1.plot(range(100), CRB_angle7, 'g.', label='ZF precoder')
+    ax1.plot(range(40), CRB_angle2, 'g-', label='digital ISAC,with initial point')
+    ax1.plot(range(40), CRB_angle3, 'r.-', label='digital ISAC,without initial point')
+    ax1.plot(range(40), CRB_angle4, 'ms', label='hybrid only crb_angle')
+    ax1.plot(range(40), CRB_angle5, 'r-', label='digital with initial point only crb_angle')
+    ax1.plot(range(40), CRB_angle6, 'b-', label='digital without initial point only crb_angle')
+    ax1.plot(range(40), CRB_angle7, 'g.', label='ZF precoder')
     ax1.set_xlabel('time')
     ax1.set_ylabel('CRB angle', color='b')
     ax1.tick_params('y', colors='b')
@@ -401,13 +410,23 @@ def comparison_between_crb_angle(combined):
 
     # lines = [ax4.get_lines()[0]]
     labels = [line.get_label() for line in lines]
-    ax1.legend(lines, labels, bbox_to_anchor=(0.5, 0.45))
+    #ax1.legend(lines, labels, bbox_to_anchor=(0.5, 0.45),loc='best')
+    ax1.legend(lines, labels, loc='best')
     ax1.legend_.get_frame().set_facecolor('white')  # 设置标签框的背景颜色为白色
     ax1.legend_.get_frame().set_linewidth(0.4)  # 设置标签框的边框宽度
     for text in ax1.legend_.get_texts():
-        text.set_fontsize(6)
+        text.set_fontsize(10)
     #ax1.legend(lines, labels, loc='best')
     plt.show()
+    idx = np.arange(antenna_size)
+    angle_set = np.arange(1, 181) / 180 * np.pi
+    Hset = np.exp(1j * np.pi * idx.reshape(-1, 1) * np.cos(angle_set))
+
+    precoder5 = precoder5.numpy()
+    print(precoder5.shape)
+    r1 = np.matmul(Hset.T, precoder4[6, :, :])
+    plt.polar(angle_set, np.abs(r1))
+    #plt.show()
 
 
 
@@ -454,14 +473,14 @@ def comparison_between_sumrate(combined):
 
 
     fig, ax1 = plt.subplots()
-    ax1.plot(range(100), sum_rate1, 'b-.', label='hybrid ISAC')
+    ax1.plot(range(40), sum_rate1, 'b-.', label='hybrid ISAC')
     #ax2 = ax1.twinx()
-    ax1.plot(range(100), sum_rate2, 'g--', label='digital ISAC,with initial point')
-    ax1.plot(range(100), sum_rate3, 'r.-', label='digital ISAC,without initial point')
-    ax1.plot(range(100), sum_rate4, 'm:', label='hybrid only communication')
-    ax1.plot(range(100), sum_rate5, 'r-', label='digital with initial point only communication')
-    ax1.plot(range(100), sum_rate6, 'b-', label='digital without initial point only communication')
-    ax1.plot(range(100), sum_rate7, 'g.', label='ZF precoder')
+    ax1.plot(range(40), sum_rate2, 'r--', label='digital ISAC,with initial point')
+    ax1.plot(range(40), sum_rate3, 'r.-', label='digital ISAC,without initial point')
+    ax1.plot(range(40), sum_rate4, 'ms', label='hybrid only communication')
+    ax1.plot(range(40), sum_rate5, 'b-', label='digital with initial point only communication')
+    ax1.plot(range(40), sum_rate6, 'r-', label='digital without initial point only communication')
+    ax1.plot(range(40), sum_rate7, 'g.', label='ZF precoder')
     ax1.set_xlabel('time')
     ax1.set_ylabel('sum rate(bits/s/hz)', color='b')
     ax1.tick_params('y', colors='b')
@@ -478,8 +497,19 @@ def comparison_between_sumrate(combined):
 
     # lines = [ax4.get_lines()[0]]
     labels = [line.get_label() for line in lines]
-    ax1.legend(lines, labels, bbox_to_anchor=(0.8, 0.6))
 
+
+
+    ax1.legend(lines, labels, bbox_to_anchor=(0.55, 0.65),loc = 'center',ncol=1,fontsize=10)
+
+
+    #ax1.legend(lines, labels, loc='best', ncol=1, fontsize=10)
+
+
+    ax1.legend_.get_frame().set_facecolor('white')  # 设置标签框的背景颜色为白色
+    ax1.legend_.get_frame().set_linewidth(0.4)  # 设置标签框的边框宽度
+    for text in ax1.legend_.get_texts():
+        text.set_fontsize(10)
     plt.show()
 
 
@@ -489,9 +519,10 @@ def comparison_between_sumrate(combined):
 
     precoder5 = precoder5.numpy()
     print(precoder5.shape)
-    r1 = np.matmul(Hset.T, precoder4[6, :, :])
+    r1 = np.matmul(Hset.T, tf.transpose(zf_matrix[30, :, :],perm=[1,0]).numpy())
+    r1 = np.matmul(Hset.T, precoder3[10, :, :])
     plt.polar(angle_set, np.abs(r1))
-    #plt.show()
+    plt.show()
 
 def eva(Test):
     if Test == "V2V":
@@ -543,15 +574,15 @@ def eva(Test):
     plt.show()
 
 
-
+random.seed(2)
 if Test == "V2V":
     real_distance, real_theta = generate_input_v2v()
 elif Test == "V2I":
     real_distance, real_theta = generate_input_v2i()
 
-#random.seed(2)
+
 #combined = loss.Conversion2CSI(real_distance, real_theta)P
-combined = loss.Conversion2input_small(real_theta.T[:100], real_distance.T[:100])
+combined = loss.Conversion2input_small(real_theta.T[:40], real_distance.T[:40])
 
 combined = tf.expand_dims(combined, axis=3)
 comparison_between_sumrate(combined)
