@@ -551,11 +551,11 @@ elif Test == "V2I":
 
 random.seed(2)
 #combined = loss.Conversion2CSI(real_distance, real_theta)P
-combined = loss.Conversion2input_small(real_theta.T[:10], real_distance.T[:10])
+#combined = loss.Conversion2input_small(real_theta.T[:10], real_distance.T[:10])
 
-combined = tf.expand_dims(combined, axis=3)
+#combined = tf.expand_dims(combined, axis=3)
 #comparison_between_sumrate(combined)
-comparison_between_crb_distance(combined)
+#comparison_between_crb_distance(combined)
 #comparison_between_crb_angle(combined)
 #print("real_distance",real_distance.T.shape)
 #print("real_theta",real_theta.T.shape)

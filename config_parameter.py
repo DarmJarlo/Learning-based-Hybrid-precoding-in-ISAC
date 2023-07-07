@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import numpy as np
 
-digital = True
+digital = False
 mode = "V2V"
 #mode = "V2I"
 # some training parameters
@@ -86,9 +86,9 @@ train_initial_location_min = 30
 train_initial_location_max = 120
 
 #setup for metrics
-rf_size = 6
-antenna_size = 16
-vehicle_antenna_size = 16
+rf_size = 24
+antenna_size = 128
+vehicle_antenna_size = 128
 receiver_antenna_size = 1
 sigma_k = 1e-7
 sigma_z = 1e-7

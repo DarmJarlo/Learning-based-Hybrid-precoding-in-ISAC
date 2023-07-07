@@ -728,10 +728,10 @@ def tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix):
     matrix = tf.matmul(Analog_matrix, Digital_matrix)
     matrix = tf.cast(matrix, dtype=tf.complex128)
     #shape(8,2)
-    magnitude_sum = tf.reduce_sum(tf.square(tf.abs(matrix)), axis=[1, 2], keepdims=True)
+    magnitude_sum = tf.reduce_sum(tf.math.square(tf.abs(matrix)), axis=[1, 2], keepdims=True)
 
-    adjustment_factor = max_power / magnitude_sum
-    adjustment_factor = tf.cast(tf.sqrt(adjustment_factor),dtype=tf.complex128)
+    adjustment_factor = tf.sqrt(max_power / magnitude_sum)
+    adjustment_factor = tf.cast(adjustment_factor,dtype=tf.complex128)
     #matrix = tf.cast(matrix, dtype=tf.complex128)
     normalized_array = tf.multiply(matrix, adjustment_factor)
 

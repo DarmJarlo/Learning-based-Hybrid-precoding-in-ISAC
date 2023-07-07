@@ -24,7 +24,7 @@ def translate_precoding_matrix(matrix):
     return translated_matrix
 import math
 model = load_model()
-model.load_weights(filepath='Keras_models_test/new_model')
+model.load_weights(filepath='allmodel1/Keras_models_hybrid64/new_model')
 if config_parameter.mode == "V2I":
     antnna_size = config_parameter.antenna_size
     num_vehicle = config_parameter.num_vehicle
@@ -37,7 +37,7 @@ angle = angle.T
 distance = distance.T
 selected_angle = angle[0:config_parameter.batch_size,:]
 selected_distance = distance[0:config_parameter.batch_size,:]
-input_single= loss.Conversion2input_small3(selected_angle,selected_distance)
+input_single= loss.Conversion2input_small(selected_angle,selected_distance)
 input_single = tf.expand_dims(input_single, axis=3)
 
 
@@ -54,19 +54,20 @@ distance = input_single[:, :, 3 * antenna_size:4*antenna_size, 0]
 distance = tf.multiply(distance, 100)
 distance = tf.cast(distance, tf.float64)
 rf_size = config_parameter.rf_size
-analog_rad = tf.concat([input_single[:, :, 8 * antenna_size:9 * antenna_size, 0], \
-                        input_single[:, :2, 9 * antenna_size:10 * antenna_size, 0]], axis=1)  # (4,16)
+#analog_rad = tf.concat([input_single[:, :, 8 * antenna_size:9 * antenna_size, 0], \
+ #                       input_single[:, :2, 9 * antenna_size:10 * antenna_size, 0]], axis=1)  # (4,16)
 # analog_rad = tf.complex(input[:,0:config_parameter.rf_size,8*antenna_size:9*antenna_size,0],\
 #                       input[:,0:config_parameter.rf_size,9*antenna_size:10*antenna_size,0])#(4,16)
-digital_ref = tf.complex(input_single[:, :, \
-                         4 * antenna_size:4 * antenna_size + rf_size, 0], \
-                         input_single[:, :, 5 * antenna_size:5 * antenna_size + rf_size, 0])
-Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output, \
-                                                                       analog_ref=tf.transpose(analog_rad,
-                                                                                               perm=[0, 2, 1]), \
-                                                                       digital_ref=tf.transpose(digital_ref,
-                                                                                                perm=[0, 2, 1]))
-
+#digital_ref = tf.complex(input_single[:, :, \
+ #                        4 * antenna_size:4 * antenna_size + rf_size, 0], \
+  #                       input_single[:, :, 5 * antenna_size:5 * antenna_size + rf_size, 0])
+#Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output, \
+                                                                      # analog_ref=tf.transpose(analog_rad,
+                                                                       #                        perm=[0, 2, 1]), \
+                                                                       #digital_ref=tf.transpose(digital_ref,
+                                                                        #                        perm=[0, 2, 1]))
+#precoding_matrix = loss.tf_Output2digitalPrecoding(Output=output, zf_matrix=None,distance=None)
+Analog_matrix,Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
 precoding_matrix = loss.tf_Precoding_matrix_combine(Analog_matrix, Digital_matrix)
 #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad_mod(Output=output, analog_ref=analog_rad,digital_ref=digital_ref)
 #Analog_matrix, Digital_matrix = loss.tf_Output2PrecodingMatrix_rad(Output=output)
