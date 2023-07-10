@@ -32,7 +32,7 @@ def load_model():
     model.summary()
     if config_parameter.FurtherTrain ==True:
         #model = tf.saved_model.load('Keras_models/new_model')
-        model.load_weights(filepath='allmodel1/Keras_models_test/new_model')
+        model.load_weights(filepath='allmodel1/Keras_models_rf8_onlycomm/new_model')
     return model
 
 
@@ -190,7 +190,7 @@ if __name__ == '__main__':
             #CRB_angle_zf = loss.tf_CRB_angle(beta,tf.transpose(zf_matrix,perm=[0,2,1]),theta)
             CRB_d = tf.cast(CRB_d, tf.float64)
             CRB_angle = tf.cast(CRB_angle, tf.float64)
-            crb_combined_loss = 20*CRB_d + CRB_angle*0
+            crb_combined_loss = 0*CRB_d + CRB_angle*100000
             #power = tf.constant(config_parameter.power, dtype=tf.float64)
             #power_error = tf.reduce_sum(tf.abs(precoding_matrix), axis=(1, 2)) - power
             #power_error = tf.cast(power_error, tf.float32)
@@ -258,14 +258,14 @@ if __name__ == '__main__':
     for iter in range(0, config_parameter.iters):
 
         #iter += 7
-        if iter < 3:
+        if iter < 2:
             #portions = [1, 1, 30]
             #optimizer_1 = tf.keras.optimizers.SGD(learning_rate=0.00003, momentum=0.9, nesterov=False)
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000015, beta_1=0.9, beta_2=0.99)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00001, beta_1=0.9, beta_2=0.99)
         #optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003, beta_1=0.91, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.0001)
-        elif iter <10:
+        elif iter <7:
             #portions = [1, 10, 30]
             optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000003, beta_1=0.9, beta_2=0.99)
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
@@ -274,7 +274,7 @@ if __name__ == '__main__':
             #optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00003, rho=0.9)
         print(iter)
         tf_dataset = tf_dataset.shuffle(9600)
-        portions = [1,40,2e6]
+        portions = [1,40,1e7]
         #portions = tf.divide([sum_rate_median, crb_d_median, crb_angle_median],(sum_rate_median+crb_d_median+crb_angle_median))
         #tf_dataset = tf_dataset.batch(config_parameter.batch_size)
         for batch in tf_dataset:
@@ -402,7 +402,7 @@ if __name__ == '__main__':
         #plt.grid(True)
         #plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='allmodel1/Keras_models_hybrid128/new_model', save_format='tf')
+        model.save_weights(filepath='allmodel1/Keras_models_rf8_combine/new_model', save_format='tf')
         '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''

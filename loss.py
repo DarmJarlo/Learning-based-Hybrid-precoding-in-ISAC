@@ -90,11 +90,13 @@ def svd_zf(zf_matrix):
     #digital_part = Sigma_prime[:num_rf, :] @ Vh_prime  # 得到（5,4）的矩阵C
     #analog_precoder = complex_matrix_to_polar(analog_part)
     analog_rad = np.angle(analog_part)
+    analog_inv = np.linalg.pinv(analog_rad.T)
     #print("analog_rad",analog_rad)
-    digital_precoder = np.matmul(zf_matrix,analog_rad.T.conj())
+    #digital_precoder = np.matmul(zf_matrix,analog_rad.T.conj())
+    digital_precoder = np.matmul(analog_inv,zf_matrix.T)
     #print("digital_precoder",digital_precoder.shape)
     #digital_precoder = complex_matrix_to_polar(digital_part)
-    return analog_rad,digital_precoder
+    return analog_rad,digital_precoder.T
 "load data"
 def load_data():
     if config_parameter.mode == "V2I":

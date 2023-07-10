@@ -14,7 +14,7 @@ import config_parameter
 sys.path.append("..")
 import matplotlib.pyplot as plt
 
-from network import DL_method_NN_for_v2x_hybrid, DL_method_NN_for_v2x_mod
+from network import DL_method_NN_for_v2x_hybrid, DL_method_NN_for_v2x_mod,DL_method_NN_for_v2x_hybrid2
 from config_parameter import iters
 
 sys.path.append("..")
@@ -24,7 +24,7 @@ import numpy as np
 # tf.compat.v1.enable_eager_execution()
 def load_model():
     # model = DL_method_NN_for_v2x_mod()
-    model = DL_method_NN_for_v2x_hybrid()
+    model = DL_method_NN_for_v2x_hybrid2()
     # model = ResNet()
     # model = ResNetLSTMModel()
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar + config_parameter.num_horizoncar
@@ -260,11 +260,11 @@ if __name__ == '__main__':
         if iter < 2:
             # optimizer_1 = tf.keras.optimizers.SGD(learning_rate=0.00003, momentum=0.9, nesterov=False)
             # optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.003, rho=0.9)
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.99)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00015, beta_1=0.9, beta_2=0.99)
         # optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.003, beta_1=0.91, beta_2=0.99)
         # optimizer_1 = tf.keras.optimizers.Adagrad(learning_rate=0.0001)
         elif iter < 6:
-            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00001, beta_1=0.9, beta_2=0.99)
+            optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.00004, beta_1=0.9, beta_2=0.99)
             # optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.00001, rho=0.9)
         else:
             optimizer_1 = tf.keras.optimizers.Adam(learning_rate=0.000001, beta_1=0.9, beta_2=0.99)
@@ -341,7 +341,7 @@ if __name__ == '__main__':
         # plt.grid(True)
         # plt.show()
         # tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='Keras_models_test/new_model', save_format='tf')
+        model.save_weights(filepath='allmodel1/Keras_models_SVDcsi2/new_model', save_format='tf')
         '''checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
                                                monitor='val_accuracy',
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''

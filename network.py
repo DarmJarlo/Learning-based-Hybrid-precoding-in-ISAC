@@ -289,7 +289,7 @@ class DL_method_NN_for_v2x_hybrid2(keras.Model):
                                   kernel_regularizer=l2(1e-4))
         self.bn7 = keras.layers.BatchNormalization()
         self.conv_layer2 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same",kernel_regularizer=l2(1e-4))
-        self.dropout2 = keras.layers.Dropout(0.2)
+        self.dropout2 = keras.layers.Dropout(0.3)
         self.bn2 = keras.layers.BatchNormalization()
         self.maxpool2 = MaxPooling2D()
         self.conv_layer3 = Conv2D(64, kernel_size=3, activation=act_func, kernel_initializer=init, padding="same",kernel_regularizer=l2(1e-4))
