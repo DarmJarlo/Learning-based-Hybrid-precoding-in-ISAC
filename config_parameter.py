@@ -51,7 +51,7 @@ RSU_location = np.array([0,-1000])
 
 Radar_measure_slot = 0.01 #s
 length_echo = 0.005  # length of echo ms
-power = 1
+power = 100
 
 fading_coefficient = 0.5 + 0.5*1j
 """這裏越小，zf的crb越大，因爲zf的幹擾永遠爲0，這個參數越小的話，sinr數量級越小，zf的crb越大"""
@@ -86,9 +86,9 @@ train_initial_location_min = 30
 train_initial_location_max = 120
 
 #setup for metrics
-rf_size = 8
-antenna_size = 32
-vehicle_antenna_size = 32
+rf_size = 6
+antenna_size = 16
+vehicle_antenna_size = 16
 receiver_antenna_size = 1
 sigma_k = 1e-7
 sigma_z = 1e-7
@@ -118,9 +118,9 @@ rou_dopplershift = 2e-8
 
 
 #loss_mode = "Upper_sum_rate"   # three mode
-#loss_mode = "lower_bound_crb"
+loss_mode = "lower_bound_crb"
 
-loss_mode = "combined_loss"
+#loss_mode = "combined_loss"
 
 
 #below are the parameter for v2v

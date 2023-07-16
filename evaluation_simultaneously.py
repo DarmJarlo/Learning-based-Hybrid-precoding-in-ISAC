@@ -5,7 +5,7 @@ import numpy as np
 import config_parameter
 import math
 import tensorflow as tf
-from network import DL_method_NN_for_v2x_mod,DL_method_NN_for_v2x_hybrid
+from network import DL_method_NN_for_v2x_mod,DL_method_NN_for_v2x_hybrid,DL_method_NN_for_v2x_hybrid2
 import matplotlib.pyplot as plt
 #Test = "V2V"
 Test = "V2I"
@@ -19,11 +19,12 @@ def load_model(digital):
     if digital==True:
         model = DL_method_NN_for_v2x_mod()
     else:
+        #model = DL_method_NN_for_v2x_hybrid2()
         model = DL_method_NN_for_v2x_hybrid()
 
     num_vehicle = config_parameter.num_uppercar + config_parameter.num_lowercar +config_parameter.num_horizoncar
 
-    model.build(input_shape=(None, num_vehicle,144,1))
+    model.build(input_shape=(None, num_vehicle,320,1))
 
     model.summary()
     return model
@@ -32,6 +33,7 @@ def load_model_hybrid_combine():
     model = load_model(digital)
 
     model.load_weights(filepath='allmodel1/Keras_models_hybrid_combinefinal/new_model')
+    #model.load_weights(filepath='allmodel1/Keras_models_rf8_combine/new_model')
     return model
 def load_model_digitalwith_combine():
     digital = True
@@ -93,6 +95,26 @@ def load_model_only_crbangle_digitalwithout():
     digital = True
     model = load_model(digital)
     model.load_weights(filepath='allmodel1/Keras_models_digitalwithout_crbafinal/new_model')
+    return model
+def load_model_noise1e_11():
+    digital =False
+    model = load_model(digital)
+    model.load_weights(filepath='allmodel1/Keras_models_hybrid_onlycommfinalnoise1e_11/new_model')
+    return model
+def load_model_noise1e_5():
+    digital =False
+    model = load_model(digital)
+    model.load_weights(filepath='allmodel2/Keras_models_hybrid_onlycommfinalnoise1e_5/new_model')
+    return model
+def load_modelpower50():
+    digital = False
+    model = load_model(digital)
+    model.load_weights(filepath='allmodel1/Keras_models_power50_onlycomm/new_model')
+    return model
+def load_modelpower100():
+    digital = False
+    model = load_model(digital)
+    model.load_weights(filepath='allmodel1/Keras_models_power100_onlycomm/new_model')
     return model
 def generate_input_v2v():
 
@@ -574,7 +596,7 @@ def eva(Test):
     plt.show()
 
 
-random.seed(2)
+#random.seed(2)
 if Test == "V2V":
     real_distance, real_theta = generate_input_v2v()
 elif Test == "V2I":
@@ -585,7 +607,7 @@ elif Test == "V2I":
 combined = loss.Conversion2input_small(real_theta.T[:40], real_distance.T[:40])
 
 combined = tf.expand_dims(combined, axis=3)
-comparison_between_sumrate(combined)
+#comparison_between_sumrate(combined)
 #comparison_between_crb_distance(combined)
 #comparison_between_crb_angle(combined)
 #print("real_distance",real_distance.T.shape)
