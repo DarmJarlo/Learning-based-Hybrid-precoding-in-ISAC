@@ -333,7 +333,7 @@ if __name__ == '__main__':
 
         timestep = list(range(1, len(sum_rate_list) + 1))
 
-        # 第一个折线数据
+       
 
 
         fig, ax1 = plt.subplots()
@@ -342,23 +342,23 @@ if __name__ == '__main__':
         ax1.set_ylabel('sum rate(bits/s/hz)', color='b')
         ax1.tick_params('y', colors='b')
 
-        # 创建第二个纵坐标轴
+       
         ax2 = ax1.twinx()
-        # 第二个折线数据
+        
         ax2.plot(timestep, crb_d_sum_list, 'r:', label='crb_distance')
         ax2.set_ylabel('CRB distance ', color='r')
         ax2.tick_params('y', colors='r')
 
-        # 创建第三个纵坐标轴
+       
         ax3 = ax1.twinx()
-        ax3.spines['right'].set_position(('outward', 50))  # 将第三个纵坐标轴移到右侧
-        # 第三个折线数据
+        ax3.spines['right'].set_position(('outward', 50))  
+       
         #y3 = 0.5 * x
         ax3.plot(timestep, crb_angle_sum_list, 'g--', label='crb_angle')
         ax3.set_ylabel('CRB angle', color='g')
         ax3.tick_params('y', colors='g')
 
-        # 创建第四个纵坐标轴
+       
         '''
         #ax4 = ax1.twinx()
         fig, ax4 = plt.subplots()
@@ -371,10 +371,10 @@ if __name__ == '__main__':
         ax4.set_ylabel('combined_loss', color='m')
         ax4.tick_params('y', colors='m')
         '''
-        # 调整图形布局，使得所有纵坐标轴都可见
+       
         fig.tight_layout()
 
-        # 添加图例
+        
         lines = [ax1.get_lines()[0], ax2.get_lines()[0], ax3.get_lines()[0]]
         #lines = [ax4.get_lines()[0]]
         labels = [line.get_label() for line in lines]
@@ -408,69 +408,6 @@ if __name__ == '__main__':
                                                save_weights_only=False, period=1, verbose=1, save_best_only=False)'''
         # tf.saved_model.save(model, )
     model.save_weights(filepath='Keras_models_hybrid_onlycrb_d/new_model', save_format='tf')
-    #profiler.stop()
-
-
-    #profiler.print_stats()
-'''
-    # the sum rate at all timepoints in this list
-        sigma_time_delay = np.zeros(
-            shape=(
-            num_vehicle, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1),
-            dtype=complex)
-        sigma_doppler = np.zeros(
-            shape=(
-            num_vehicle, int(config_parameter.one_iter_period / config_parameter.Radar_measure_slot) + 1),
-            dtype=complex)
-        # Reference_Signal = loss.Chirp_signal()
-        print("1")
-
-        #input_whole = loss.generate_random_sample()
-
-
-        for epo in range(0,45):
-
-            #print(input_whole.shape)
-            communication_loss = 0
-            input_single = input_whole[4*epo:4*epo + config_parameter.batch_size, :, :]
-            input_single = tf.convert_to_tensor(input_single)
-            input_single=tf.expand_dims(input_single, axis=0)
-            input_single = tf.transpose(input_single,perm = [1,0,2,3])
-
-
-            #communication_loss,crb_dThis,crb_angelTHis=train_step(input_single)
-            communication_loss,precoding_matrix,CSI,gradients = train_step(input_single)
-
-            print("Epoch: {}/{}, step: {},loss: {}".format(iter + 1,config_parameter.iters, epo,communication_loss.numpy()
-                                                                                     ))
-            file_path = "precoding_matrix.txt"
-            with open(file_path, "a") as file:
-
-                file.write("precoding")
-                file.write(str(precoding_matrix.numpy()) + "\n")
-                file.write("theta")
-                file.write(str(input_single[0,-1,0:num_vehicle,2*antenna_size]) + "\n")
-                file.write("distance")
-                file.write(str(input_single[0,-1,0:num_vehicle,3*antenna_size]) + "\n")
-                file.write("CSI")
-                file.write(str(CSI.numpy()) + "\n")
-                file.write("gradients")
-                file.write(str(gradients) + "\n")
-        sum_rate_list.append(communication_loss)
-        timestep = list(range(1, len(sum_rate_list) + 1))
-        plt.plot(timestep, sum_rate_list, 'b-o')
-        plt.xlabel('Timestep')
-        plt.ylabel('Loss')
-        plt.title('Loss vs Timestep')
-        plt.grid(True)
-        plt.show()
-            #tf.saved_model.save(model, 'Keras_models/new_model')
-        model.save_weights(filepath='Keras_models/new_model', save_format='tf')
-        '''
-'''
-        checkpointer = ModelCheckpoint(filepath="Keras_models/weights.{epoch:02d}-{val_accuracy:.2f}.hdf5",
-                                               monitor='val_accuracy',
-                                               save_weights_only=False, period=1, verbose=1, save_best_only=False)
-        #tf.saved_model.save(model, )
-    model.save_weights(filepath='Keras_models/new_model', save_format='tf')
-    '''
+    
+    
+   
