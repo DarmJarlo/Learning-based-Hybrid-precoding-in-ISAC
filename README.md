@@ -17,6 +17,7 @@ _**Overview**_
 _**usage instructions**_
 
 First，train the model
+- check in the bottom of config_parameter.py which goal you wanna train for, only communication. only crb or combined. Here I recommand you first train with the goal of only communication and then go further. It is worth noting that when you train for only crb, you need to modify the loss function in the train function in Trainv2_4inputs
 
 
 
