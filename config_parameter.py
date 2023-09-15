@@ -123,4 +123,3 @@ loss_mode = "lower_bound_crb"
 #loss_mode = "combined_loss"
 
 
-#below are the parameter for v2v
