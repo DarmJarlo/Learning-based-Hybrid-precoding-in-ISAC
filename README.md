@@ -21,6 +21,8 @@ First，while training the model
 
 - check the network mode in Trainv2_4inputs: In the load_model function, if you wanna train for digital precoding, use model = DL_method_NN_for_v2x_mod(), or you need to use model = DL_method_NN_for_v2x_hybrid() for hybrid precoding.
 
+- In line 112 of Trainv2_4inputs.py, when you do not have starting point for the training, set zf_matrix = None
+
 After the model is trained, you can then make use of the files with "evalution" to evaluate it.
 
 - In the bottom of every file, you need firstly to assign the mode of models and then start evaluation.
