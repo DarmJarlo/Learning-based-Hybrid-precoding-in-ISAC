@@ -29,7 +29,6 @@ After the model is trained, you can then make use of the files with "evalution" 
  
 - In evaluation_parameterssimulataneous.py, it is worth noting every time under one single mode you can only evaluate one kind of parameters, which means you cannot evaluate level of noise and transmit power in a single runtime. Like what I have done in the code, you must first comment the other functions and just run with the function different_k uncommented. 
 
-As for more questions, please contact via email jiaxiangyujxy@gmail.com or 957719778@qq.com
 
 
 
